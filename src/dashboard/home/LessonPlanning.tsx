@@ -74,7 +74,7 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
 
             console.log('Sending request with question:', question.trim());
 
-            const response = await fetch('https://cors-anywhere.herokuapp.com/https://lessonplanner-pnys4b454q-uc.a.run.app', {
+            const response = await fetch('https://lessonplanner-pnys4b454q-uc.a.run.app', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
