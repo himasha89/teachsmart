@@ -1,0 +1,26 @@
+"use client";
+
+import { Box, CircularProgress, Typography } from '@mui/material';
+
+const LoadingView = () => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        gap: 2,
+        background: 'radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))'
+      }}
+    >
+      <CircularProgress size={40} />
+      <Typography variant="body1" color="text.secondary">
+        Loading TeachSmart...
+      </Typography>
+    </Box>
+  );
+};
+
+export default LoadingView;
