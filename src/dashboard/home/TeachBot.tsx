@@ -174,7 +174,7 @@ export default function TeachBot(props: { disableCustomTheme?: boolean }) {
 
     try {
       // Send API request
-      const response = await fetch('https://bot-pnys4b454q-uc.a.run.app', {
+      const response = await fetch('https://cors-anywhere.herokuapp.com/https://bot-pnys4b454q-uc.a.run.app', {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
