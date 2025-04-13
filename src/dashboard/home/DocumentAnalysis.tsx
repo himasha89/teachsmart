@@ -115,7 +115,7 @@ export default function DocumentAnalysis(props: { disableCustomTheme?: boolean }
       }
 
       // Make API call
-      const response = await fetch('/api/lesson-planner', {
+      const response = await fetch('https://analyze-document-pnys4b454q-uc.a.run.app', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
