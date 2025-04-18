@@ -36,13 +36,19 @@ interface Assessment {
     Description: string;
 }
 
+// Define Activity interface to handle structured activities
+interface Activity {
+    name: string;
+    description: string;
+}
+
 interface LessonPlanData {
     topic: string;
     grade_level: string;
     learning_objectives: string[];
     materials: string[];
     duration: string | number;
-    activities: string[];
+    activities: (Activity | string)[]; // Update to support both object format and string format
     assessment: Assessment | string;
 }
 
@@ -52,7 +58,7 @@ interface ApiResponse {
     learning_objectives: string[];
     materials: string[];
     duration: string | number;
-    activities: string[];
+    activities: (Activity | string)[];
     assessment: Assessment | string;
 }
 
@@ -133,6 +139,32 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
                 </Typography>
             </Box>
         );
+    };
+
+    // Helper function to render activity based on its type
+    const renderActivity = (activity: Activity | string, index: number) => {
+        if (typeof activity === 'string') {
+            return (
+                <ListItem key={index}>
+                    <ListItemIcon>
+                        <CheckCircleOutlineIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText primary={activity} />
+                </ListItem>
+            );
+        } else {
+            return (
+                <ListItem key={index} alignItems="flex-start">
+                    <ListItemIcon>
+                        <CheckCircleOutlineIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                        primary={activity.name} 
+                        secondary={activity.description}
+                    />
+                </ListItem>
+            );
+        }
     };
 
     return (
@@ -262,14 +294,9 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
                                             <ListAltIcon /> Activities
                                         </Typography>
                                         <List>
-                                            {lessonPlan.activities.map((activity, index) => (
-                                                <ListItem key={index}>
-                                                    <ListItemIcon>
-                                                        <CheckCircleOutlineIcon color="primary" />
-                                                    </ListItemIcon>
-                                                    <ListItemText primary={activity} />
-                                                </ListItem>
-                                            ))}
+                                            {lessonPlan.activities && lessonPlan.activities.map((activity, index) => 
+                                                renderActivity(activity, index)
+                                            )}
                                         </List>
                                     </Box>
 
