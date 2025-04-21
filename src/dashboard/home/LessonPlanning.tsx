@@ -104,7 +104,16 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
             console.log('Raw response:', rawText);
 
             try {
-                const jsonResponse = JSON.parse(rawText.trim()) as ApiResponse;
+                // Try to safely parse the JSON - attempt to repair if it's truncated
+                const jsonResponse = safeParseJson(rawText.trim()) as ApiResponse;
+                
+                // Validate required fields
+                if (!jsonResponse.topic || !jsonResponse.grade_level || 
+                    !Array.isArray(jsonResponse.learning_objectives) || 
+                    !Array.isArray(jsonResponse.activities)) {
+                    throw new Error('Incomplete response from lesson plan service');
+                }
+                
                 setLessonPlan(jsonResponse);
             } catch (parseError) {
                 console.error('JSON Parse Error:', parseError);
@@ -117,6 +126,42 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
             setLessonPlan(null);
         } finally {
             setGenerating(false);
+        }
+    };
+
+    // Helper function to attempt to repair and parse potentially truncated JSON
+    const safeParseJson = (jsonString: string): any => {
+        try {
+            // First try normal parsing
+            return JSON.parse(jsonString);
+        } catch (error) {
+            console.log('Initial JSON parse failed, attempting to repair');
+            
+            // Check if it's a truncation issue with missing closing braces
+            const lastChar = jsonString.trim().slice(-1);
+            
+            // If not ended with closing brace, try to add missing parts
+            if (lastChar !== '}') {
+                // Check if we have an unclosed string (missing end quote)
+                const matches = jsonString.match(/"([^"]*?)$/);
+                let repairedJson = jsonString;
+                
+                if (matches) {
+                    // Add missing quote for string
+                    repairedJson += '"';
+                }
+                
+                // Add missing closing brace
+                if (!repairedJson.trim().endsWith('}')) {
+                    repairedJson += '}';
+                }
+                
+                console.log('Attempting to parse repaired JSON');
+                return JSON.parse(repairedJson);
+            }
+            
+            // If repair attempt didn't work, rethrow error
+            throw error;
         }
     };
 
@@ -278,7 +323,7 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
                                             <BuildIcon /> Materials Needed
                                         </Typography>
                                         <List>
-                                            {lessonPlan.materials.map((material, index) => (
+                                            {Array.isArray(lessonPlan.materials) && lessonPlan.materials.map((material, index) => (
                                                 <ListItem key={index}>
                                                     <ListItemIcon>
                                                         <CheckCircleOutlineIcon color="primary" />
@@ -294,7 +339,7 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
                                             <ListAltIcon /> Activities
                                         </Typography>
                                         <List>
-                                            {lessonPlan.activities && lessonPlan.activities.map((activity, index) => 
+                                            {Array.isArray(lessonPlan.activities) && lessonPlan.activities.map((activity, index) => 
                                                 renderActivity(activity, index)
                                             )}
                                         </List>
@@ -304,7 +349,7 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
                                         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <AssessmentIcon /> Assessment
                                         </Typography>
-                                        {renderAssessment(lessonPlan.assessment)}
+                                        {lessonPlan.assessment && renderAssessment(lessonPlan.assessment)}
                                     </Box>
                                 </Stack>
                             </Paper>
