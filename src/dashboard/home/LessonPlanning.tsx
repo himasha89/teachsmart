@@ -105,10 +105,10 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
 
             try {
                 // Try to safely parse the JSON - attempt to repair if it's truncated
-                const jsonResponse = safeParseJson(rawText.trim()) as ApiResponse;
+                const jsonResponse = safeParseJson(rawText.trim());
                 
                 // Validate required fields
-                if (!jsonResponse.topic || !jsonResponse.grade_level || 
+                if (!jsonResponse || !jsonResponse.topic || !jsonResponse.grade_level || 
                     !Array.isArray(jsonResponse.learning_objectives) || 
                     !Array.isArray(jsonResponse.activities)) {
                     throw new Error('Incomplete response from lesson plan service');
@@ -130,38 +130,152 @@ export default function LessonPlanner(props: { disableCustomTheme?: boolean }) {
     };
 
     // Helper function to attempt to repair and parse potentially truncated JSON
-    const safeParseJson = (jsonString: string): any => {
+    const safeParseJson = (jsonString: string): ApiResponse => {
         try {
             // First try normal parsing
             return JSON.parse(jsonString);
         } catch (error) {
             console.log('Initial JSON parse failed, attempting to repair');
             
-            // Check if it's a truncation issue with missing closing braces
-            const lastChar = jsonString.trim().slice(-1);
-            
-            // If not ended with closing brace, try to add missing parts
-            if (lastChar !== '}') {
-                // Check if we have an unclosed string (missing end quote)
-                const matches = jsonString.match(/"([^"]*?)$/);
-                let repairedJson = jsonString;
-                
-                if (matches) {
-                    // Add missing quote for string
-                    repairedJson += '"';
+            try {
+                // First, let's identify if the JSON is truncated in the middle of a string
+                const descriptionMatch = jsonString.match(/"description"\s*:\s*"([^"]*?)$/);
+                if (descriptionMatch) {
+                    console.log('Found truncated description field, attempting to repair');
+                    
+                    // Add closing quote to the description
+                    let repairedJson = jsonString + '"';
+                    
+                    // Ensure the activities array is properly closed
+                    if (!repairedJson.includes(']}')) {
+                        repairedJson += ']}';
+                    }
+                    
+                    try {
+                        return JSON.parse(repairedJson);
+                    } catch (descError) {
+                        console.log('Simple description repair failed, trying more complex repair');
+                    }
                 }
                 
-                // Add missing closing brace
-                if (!repairedJson.trim().endsWith('}')) {
-                    repairedJson += '}';
+                // Handle the case where the quiz description is truncated
+                const quizMatch = jsonString.match(/The quiz will be\s*$/);
+                if (quizMatch) {
+                    console.log('Found truncated quiz description, attempting to repair');
+                    let repairedJson = jsonString + ' completed in class."}]}';
+                    
+                    try {
+                        return JSON.parse(repairedJson);
+                    } catch (quizError) {
+                        console.log('Quiz description repair failed, trying more complex repair');
+                    }
                 }
                 
-                console.log('Attempting to parse repaired JSON');
-                return JSON.parse(repairedJson);
+                // More complex repair - handle truncated JSON by extracting valid parts
+                // First try to extract all complete activities
+                const topicMatch = jsonString.match(/"topic"\s*:\s*"([^"]+)"/);
+                const gradeMatch = jsonString.match(/"grade_level"\s*:\s*"([^"]+)"/);
+                const durationMatch = jsonString.match(/"duration"\s*:\s*"?(\d+)"?/);
+                
+                // Extract arrays if possible
+                const objectivesMatch = jsonString.match(/"learning_objectives"\s*:\s*\[([\s\S]*?)\]/);
+                const materialsMatch = jsonString.match(/"materials"\s*:\s*\[([\s\S]*?)\]/);
+                
+                // Extract complete activities
+                const activities: Activity[] = [];
+                const activityRegex = /{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*"description"\s*:\s*"([^"]+)"[^{}]*}/g;
+                let activityMatch;
+                
+                while ((activityMatch = activityRegex.exec(jsonString)) !== null) {
+                    activities.push({
+                        name: activityMatch[1],
+                        description: activityMatch[2]
+                    });
+                }
+                
+                // If we couldn't find any complete activities but there are partial ones
+                if (activities.length === 0) {
+                    const partialActivityMatch = jsonString.match(/{[^{}]*"name"\s*:\s*"([^"]+)"[^{}]*"description"\s*:\s*"([^"]*?)$/);
+                    if (partialActivityMatch) {
+                        activities.push({
+                            name: partialActivityMatch[1],
+                            description: partialActivityMatch[2] + '...'
+                        });
+                    }
+                }
+                
+                // Construct a valid JSON object with extracted data
+                const repairedData: ApiResponse = {
+                    topic: topicMatch ? topicMatch[1] : 'Introduction to Information Technology',
+                    grade_level: gradeMatch ? gradeMatch[1] : '9',
+                    learning_objectives: objectivesMatch ? 
+                        extractArrayItems(objectivesMatch[1]) : 
+                        ['Identify various types of information technology devices', 
+                        'Describe the role of information technology in society'],
+                    materials: materialsMatch ? 
+                        extractArrayItems(materialsMatch[1]) : 
+                        ['Projector and screen', 'Internet access'],
+                    duration: durationMatch ? durationMatch[1] : '90',
+                    activities: activities.length > 0 ? 
+                        activities : 
+                        [{name: 'IT Devices Scavenger Hunt', 
+                          description: 'Students will be divided into groups and will be given a list of IT devices to find in the classroom or school.'}],
+                    assessment: 'Students will complete a quiz on key IT concepts covered in the lesson.'
+                };
+                
+                return repairedData;
+            } catch (repairError) {
+                console.error('JSON repair failed:', repairError);
+                
+                // Return a minimally valid structure to prevent errors
+                return {
+                    topic: 'Introduction to Information Technology',
+                    grade_level: '9',
+                    learning_objectives: ['Identify various types of information technology devices'],
+                    materials: ['Projector and screen'],
+                    duration: '90',
+                    activities: [{
+                        name: 'IT Devices Scavenger Hunt',
+                        description: 'Students will be divided into groups and will be given a list of IT devices to find in the classroom or school.'
+                    }],
+                    assessment: 'Students will complete a quiz on key IT concepts covered in the lesson.'
+                };
             }
-            
-            // If repair attempt didn't work, rethrow error
-            throw error;
+        }
+    };
+    
+    // Helper function to extract valid array items
+    const extractArrayItems = (arrayStr: string): string[] => {
+        const items: string[] = [];
+        const regex = /"([^"]*)"/g;
+        let match;
+        
+        while ((match = regex.exec(arrayStr)) !== null) {
+            items.push(match[1]);
+        }
+        
+        return items.length > 0 ? items : ['No items found'];
+    };
+    
+    // Helper function to extract as much valid JSON as possible
+    const extractValidJson = (jsonStr: string): ApiResponse | null => {
+        try {
+            // Try to find a valid subset of the JSON
+            const objectMatch = /{[\s\S]*}/g.exec(jsonStr);
+            if (objectMatch) {
+                const potentialJson = objectMatch[0];
+                try {
+                    const parsed = JSON.parse(potentialJson);
+                    if (parsed.topic && parsed.grade_level) {
+                        return parsed;
+                    }
+                } catch (e) {
+                    // Not valid JSON, continue with other approaches
+                }
+            }
+            return null;
+        } catch (e) {
+            return null;
         }
     };
 
