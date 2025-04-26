@@ -323,7 +323,7 @@ export default function TeachBot(props: { disableCustomTheme?: boolean }) {
                 fontFamily: 'Plus Jakarta Sans, sans-serif' 
               }}
             >
-              TeachBot Assistant
+              TeachBot
             </Typography>
             <Divider />
 

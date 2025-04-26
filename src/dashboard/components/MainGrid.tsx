@@ -9,7 +9,7 @@ import {
   GiTeacher, 
   GiArtificialIntelligence,
   GiRobotGolem, 
-  GiProgression,
+  GiSpellBook,
   GiBookshelf,
   GiSettingsKnobs,
   GiThink,
@@ -36,10 +36,10 @@ const data: StatCardProps[] = [
     path: '/dashboard/home/teachbot',
   },
   {
-    title: 'Student Progress Insights',
-    description: 'Get real-time analytics on student engagement.',
-    icon: <GiProgression size={40} style={{ color: '#96CEB4' }} />,
-    path: '/dashboard/home',
+    title: 'Grammar Checker',
+    description: 'Check student writing for grammar and spelling errors in real-time.',
+    icon: <GiSpellBook size={40} style={{ color: '#96CEB4' }} />,
+    path: '/dashboard/home/grammar-checker',
   },
   {
     title: 'Primary Source Recommendations',

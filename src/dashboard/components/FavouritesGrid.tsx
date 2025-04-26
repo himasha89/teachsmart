@@ -9,11 +9,7 @@ import {
   GiTeacher, 
   GiArtificialIntelligence,
   GiRobotGolem, 
-  GiProgression,
-  GiBookshelf,
-  GiSettingsKnobs,
-  GiThink,
-  GiHistogram
+  GiSpellBook 
 } from 'react-icons/gi';
 
 const data: StatCardProps[] = [
@@ -35,6 +31,12 @@ const data: StatCardProps[] = [
     icon: <GiRobotGolem size={40} style={{ color: '#45B7D1' }} />,
     path: '/dashboard/home/teachbot',
   },
+  {
+    title: 'Grammar Checker',
+    description: 'Check student writing for grammar and spelling errors in real-time.',
+    icon: <GiSpellBook size={40} style={{ color: '#96CEB4' }} />,
+    path: '/dashboard/home/grammar-checker',
+  }
 ];
 
 export default function FavouritesGrid() {
