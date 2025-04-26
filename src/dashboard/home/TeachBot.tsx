@@ -33,7 +33,7 @@ import {
 const ChatContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
-  height: 'calc(100vh - 180px)',
+  height: 'calc(100vh - 200px)',
   width: '100%',
   maxWidth: '1000px',
   margin: '0 auto',
@@ -45,7 +45,7 @@ const MessageArea = styled(Paper)(({ theme }) => ({
   overflowY: 'auto',
   padding: theme.spacing(2),
   backgroundColor: alpha(theme.palette.background.default, 0.7),
-  border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+  border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius * 2,
 }));
 
@@ -53,10 +53,9 @@ const InputContainer = styled(Paper)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(1, 2),
-  borderRadius: theme.shape.borderRadius * 1.5,
-  border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+  borderRadius: theme.shape.borderRadius * 2,
+  border: `1px solid ${theme.palette.divider}`,
   backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[2],
 }));
 
 const MessageContainer = styled(Box)(({ theme }) => ({
@@ -307,127 +306,123 @@ export default function TeachBot(props: { disableCustomTheme?: boolean }) {
           component="main"
           sx={(theme) => ({
             flexGrow: 1,
-            backgroundColor: alpha(theme.palette.background.default, 0.95),
+            backgroundColor: alpha(theme.palette.background.default, 1),
             overflow: 'auto',
+            padding: 3
           })}
         >
-          <Stack
-            spacing={2}
-            sx={{
-              alignItems: 'center',
-              mx: 3,
-              pb: 5,
-              mt: { xs: 8, md: 0 },
-            }}
-          >
+          <Stack spacing={3}>
             <Header />
 
             <Typography 
-                variant="h3" 
-                sx={{ 
-                  fontWeight: 700, 
-                  mb: 2, 
-                  width: '100%', 
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
-                  background: 'black',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                TeachBot Assistant
-              </Typography>
-            <Divider sx={{ width: '100%', opacity: 0.6 }} />
+              variant="h3" 
+              sx={{ 
+                fontWeight: 700, 
+                mb: 2, 
+                width: '100%', 
+                fontFamily: 'Plus Jakarta Sans, sans-serif' 
+              }}
+            >
+              TeachBot Assistant
+            </Typography>
+            <Divider />
 
             {/* Chat Interface */}
-            <ChatContainer>
-              <MessageArea elevation={0}>
-                {messages.map((message) => (
-                  <MessageContainer key={message.id}>
-                    {message.isbot ? (
-                      <>
-                        <StyledAvatar>
-                          <SmartToyOutlinedIcon fontSize="small" />
-                        </StyledAvatar>
-                        <BotMessage>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              whiteSpace: 'pre-wrap',
-                              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                              lineHeight: 1.5,
-                              color: '#000000',
-                            }}
-                          >
-                            {message.text}
-                          </Typography>
-                        </BotMessage>
-                      </>
-                    ) : (
-                      <>
-                        <UserMessage>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              whiteSpace: 'pre-wrap',
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {message.text}
-                          </Typography>
-                        </UserMessage>
-                        <UserAvatar>
-                          <PersonOutlineOutlinedIcon fontSize="small" />
-                        </UserAvatar>
-                      </>
-                    )}
-                  </MessageContainer>
-                ))}
-                {isLoading && (
-                  <MessageContainer>
-                    <StyledAvatar>
-                      <SmartToyOutlinedIcon fontSize="small" />
-                    </StyledAvatar>
-                    <BotMessage>
-                      <CircularProgress size={20} thickness={4} sx={{ opacity: 0.7 }} />
-                    </BotMessage>
-                  </MessageContainer>
-                )}
-                <div ref={messagesEndRef} />
-              </MessageArea>
+            <Paper
+              elevation={0}
+              variant="outlined"
+              sx={{ p: 3, borderRadius: 2 }}
+            >
+              <ChatContainer>
+                <MessageArea elevation={0} variant="outlined">
+                  {messages.map((message) => (
+                    <MessageContainer key={message.id}>
+                      {message.isbot ? (
+                        <>
+                          <StyledAvatar>
+                            <SmartToyOutlinedIcon fontSize="small" />
+                          </StyledAvatar>
+                          <BotMessage>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                whiteSpace: 'pre-wrap',
+                                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {message.text}
+                            </Typography>
+                          </BotMessage>
+                        </>
+                      ) : (
+                        <>
+                          <UserMessage>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                whiteSpace: 'pre-wrap',
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {message.text}
+                            </Typography>
+                          </UserMessage>
+                          <UserAvatar>
+                            <PersonOutlineOutlinedIcon fontSize="small" />
+                          </UserAvatar>
+                        </>
+                      )}
+                    </MessageContainer>
+                  ))}
+                  {isLoading && (
+                    <MessageContainer>
+                      <StyledAvatar>
+                        <SmartToyOutlinedIcon fontSize="small" />
+                      </StyledAvatar>
+                      <BotMessage>
+                        <CircularProgress size={20} thickness={4} sx={{ opacity: 0.7 }} />
+                      </BotMessage>
+                    </MessageContainer>
+                  )}
+                  <div ref={messagesEndRef} />
+                </MessageArea>
 
-              <InputContainer elevation={0}>
-                <TextField
-                  fullWidth
-                  multiline
-                  maxRows={4}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message..."
-                  variant="standard"
-                  InputProps={{
-                    disableUnderline: true,
-                  }}
-                  sx={{ px: 1 }}
-                  disabled={isLoading}
-                />
-                <IconButton
-                  color="primary"
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || isLoading}
-                  sx={{
-                    transform: inputValue.trim() && !isLoading ? 'scale(1)' : 'scale(0.9)',
-                    transition: 'all 0.2s ease',
-                    backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                    '&:hover': {
-                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.2),
-                    }
-                  }}
-                >
-                  <SendIcon />
-                </IconButton>
-              </InputContainer>
-            </ChatContainer>
+                <InputContainer elevation={0} variant="outlined">
+                  <TextField
+                    fullWidth
+                    multiline
+                    maxRows={4}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message..."
+                    variant="standard"
+                    InputProps={{
+                      disableUnderline: true,
+                      style: { cursor: 'text' },
+                    }}
+                    sx={{ px: 1 }}
+                    disabled={isLoading}
+                  />
+                  <IconButton
+                    color="primary"
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || isLoading}
+                    sx={{
+                      transform: inputValue.trim() && !isLoading ? 'scale(1)' : 'scale(0.9)',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      '&:hover': {
+                        backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.2),
+                      }
+                    }}
+                  >
+                    <SendIcon />
+                  </IconButton>
+                </InputContainer>
+              </ChatContainer>
+            </Paper>
           </Stack>
         </Box>
       </Box>
