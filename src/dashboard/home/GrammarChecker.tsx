@@ -15,11 +15,19 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SpellcheckIcon from '@mui/icons-material/Spellcheck';
 import CircularProgress from '@mui/material/CircularProgress';
 import { styled } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
+import Tab from '@mui/material/Tab';
+import TabContext from '@mui/lab/TabContext';
+import TabList from '@mui/lab/TabList';
+import TabPanel from '@mui/lab/TabPanel';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Initialize PDF.js worker
@@ -37,18 +45,29 @@ const VisuallyHiddenInput = styled('input')({
   width: 1,
 });
 
-interface AnalysisResponse {
-  result: {
-    summary_text: string;
-  };
+interface GrammarIssue {
+  original: string;
+  suggestion: string;
+  type: 'grammar' | 'spelling' | 'punctuation' | 'style';
+  explanation: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+interface GrammarCheckResponse {
+  correctedText: string;
+  issues: GrammarIssue[];
+  score: number;
 }
 
 export default function GrammarChecker(props: { disableCustomTheme?: boolean }) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [analyzing, setAnalyzing] = React.useState(false);
-  const [analysisResults, setAnalysisResults] = React.useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [tabValue, setTabValue] = React.useState('text');
+  const [inputText, setInputText] = React.useState('');
+  const [checking, setChecking] = React.useState(false);
   const [extractingText, setExtractingText] = React.useState(false);
+  const [grammarResults, setGrammarResults] = React.useState<GrammarCheckResponse | null>(null);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const extractTextFromPdf = async (file: File): Promise<string> => {
     try {
@@ -85,68 +104,184 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
       setErrorMessage(null);
-      setAnalysisResults(null);
+      setGrammarResults(null);
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!selectedFile) return;
-    
+  const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+    setTabValue(newValue);
+    // Reset results when switching tabs
+    setGrammarResults(null);
+    setErrorMessage(null);
+  };
+
+  const handleCheckGrammar = async () => {
     try {
-      setAnalyzing(true);
+      setChecking(true);
       setErrorMessage(null);
       
-      // Extract text based on file type
-      let text: string;
-      if (selectedFile.type === 'application/pdf') {
-        text = await extractTextFromPdf(selectedFile);
+      let textToCheck: string;
+      
+      // Get text based on current tab
+      if (tabValue === 'file') {
+        if (!selectedFile) {
+          throw new Error('Please select a file first');
+        }
+        
+        // Extract text based on file type
+        if (selectedFile.type === 'application/pdf') {
+          textToCheck = await extractTextFromPdf(selectedFile);
+        } else {
+          // For text files, read as text
+          textToCheck = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsText(selectedFile);
+          });
+        }
       } else {
-        // For text files, read as text
-        text = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = () => reject(new Error('Failed to read file'));
-          reader.readAsText(selectedFile);
-        });
+        // Use the text from textarea
+        textToCheck = inputText.trim();
+        if (!textToCheck) {
+          throw new Error('Please enter some text to check');
+        }
       }
 
-      if (!text.trim()) {
-        throw new Error('No text content found in the file');
-      }
-
-      // Make API call
-      const response = await fetch('https://analyze-document-pnys4b454q-uc.a.run.app', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: {
-            text: text.trim(),
-            task: 'summarize'
+      // This is a mock response - we'll implement the real API call later
+      // For now, let's simulate a grammar check response
+      const mockResponse: GrammarCheckResponse = {
+        correctedText: textToCheck.replace("its", "it's").replace("dont", "don't"),
+        issues: [
+          {
+            original: "its",
+            suggestion: "it's",
+            type: "grammar",
+            explanation: "Use 'it's' as a contraction of 'it is' or 'it has'.",
+            startIndex: textToCheck.indexOf("its"),
+            endIndex: textToCheck.indexOf("its") + 3
+          },
+          {
+            original: "dont",
+            suggestion: "don't",
+            type: "spelling",
+            explanation: "The word 'dont' should have an apostrophe: 'don't'.",
+            startIndex: textToCheck.indexOf("dont"),
+            endIndex: textToCheck.indexOf("dont") + 4
           }
-        }),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData);
-      }
-  
-      const result = await response.json() as AnalysisResponse;
-      if (result.result?.summary_text) {
-        setAnalysisResults(result.result.summary_text);
-      } else {
-        throw new Error('Invalid response format');
-      }
-  
+        ],
+        score: 85
+      };
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setGrammarResults(mockResponse);
     } catch (error) {
-      console.error('Analysis error:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to analyze document. Please try again.');
-      setAnalysisResults(null);
+      console.error('Grammar check error:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to check grammar. Please try again.');
+      setGrammarResults(null);
     } finally {
-      setAnalyzing(false);
+      setChecking(false);
     }
+  };
+
+  const renderHighlightedText = () => {
+    if (!grammarResults || !grammarResults.issues.length) {
+      return <Typography variant="body1">{grammarResults?.correctedText || ''}</Typography>;
+    }
+
+    // Sort issues by start index to process them in order
+    const sortedIssues = [...grammarResults.issues].sort((a, b) => a.startIndex - b.startIndex);
+    const text = tabValue === 'text' ? inputText : (selectedFile ? selectedFile.name : '');
+    let lastIndex = 0;
+    const segments = [];
+
+    sortedIssues.forEach((issue, idx) => {
+      // Add text before the current issue
+      if (issue.startIndex > lastIndex) {
+        segments.push(
+          <span key={`text-${idx}`}>
+            {grammarResults.correctedText.substring(lastIndex, issue.startIndex)}
+          </span>
+        );
+      }
+
+      // Add highlighted issue
+      segments.push(
+        <Box
+          component="span"
+          key={`highlight-${idx}`}
+          sx={{
+            backgroundColor: theme => {
+              switch (issue.type) {
+                case 'grammar': return alpha(theme.palette.error.main, 0.1);
+                case 'spelling': return alpha(theme.palette.warning.main, 0.1);
+                case 'punctuation': return alpha(theme.palette.info.main, 0.1);
+                case 'style': return alpha(theme.palette.success.main, 0.1);
+                default: return alpha(theme.palette.error.main, 0.1);
+              }
+            },
+            borderBottom: theme => {
+              switch (issue.type) {
+                case 'grammar': return `2px solid ${theme.palette.error.main}`;
+                case 'spelling': return `2px solid ${theme.palette.warning.main}`;
+                case 'punctuation': return `2px solid ${theme.palette.info.main}`;
+                case 'style': return `2px solid ${theme.palette.success.main}`;
+                default: return `2px solid ${theme.palette.error.main}`;
+              }
+            },
+            padding: '0 2px',
+            position: 'relative',
+            cursor: 'help',
+            '&:hover': {
+              '& > .tooltip': {
+                display: 'block',
+              },
+            },
+          }}
+          title={`${issue.suggestion} - ${issue.explanation}`}
+        >
+          {issue.original}
+          <Box
+            className="tooltip"
+            sx={{
+              display: 'none',
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              backgroundColor: 'white',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              padding: 1.5,
+              borderRadius: 1,
+              zIndex: 1000,
+              minWidth: 200,
+              maxWidth: 300,
+            }}
+          >
+            <Typography variant="caption" component="div" fontWeight="bold">
+              Suggestion: {issue.suggestion}
+            </Typography>
+            <Typography variant="caption" component="div">
+              {issue.explanation}
+            </Typography>
+          </Box>
+        </Box>
+      );
+
+      lastIndex = issue.endIndex;
+    });
+
+    // Add text after the last issue
+    if (lastIndex < grammarResults.correctedText.length) {
+      segments.push(
+        <span key="text-last">
+          {grammarResults.correctedText.substring(lastIndex)}
+        </span>
+      );
+    }
+
+    return <Typography variant="body1">{segments}</Typography>;
   };
 
   return (
@@ -156,14 +291,14 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
         <SideMenu />
         <AppNavbar />
         <Box
-            component="main"
-            sx={(theme) => ({
-              flexGrow: 1,
-              backgroundColor: alpha(theme.palette.background.default, 1),
-              overflow: 'auto',
-              padding: 3
-            })}
-          >
+          component="main"
+          sx={(theme) => ({
+            flexGrow: 1,
+            backgroundColor: alpha(theme.palette.background.default, 1),
+            overflow: 'auto',
+            padding: 3
+          })}
+        >
           <Stack spacing={3}>
             <Header />
 
@@ -172,73 +307,184 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
             </Typography>
             <Divider />
             
-            {/* Upload and Analysis Section */}
+            {/* Tabs for Input Methods */}
             <Paper 
               elevation={0} 
               variant="outlined"
-              sx={{ p: 3, borderRadius: 2 }}
+              sx={{ borderRadius: 2 }}
             >
-              <Stack spacing={3}>
-                <Typography variant="h6" gutterBottom>
-                  Document Analysis
-                </Typography>
-                
-                {/* Upload Button */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    startIcon={<CloudUploadIcon />}
-                  >
-                    Upload Document
-                    <VisuallyHiddenInput 
-                      type="file" 
-                      accept=".pdf,.txt"
-                      onChange={handleFileChange}
-                    />
-                  </Button>
-                  {selectedFile && (
-                    <Typography variant="body2" color="text.secondary">
-                      Selected: {selectedFile.name}
-                    </Typography>
-                  )}
+              <TabContext value={tabValue}>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <TabList onChange={handleTabChange} aria-label="input method tabs">
+                    <Tab label="Enter Text" value="text" icon={<SpellcheckIcon />} iconPosition="start" />
+                    <Tab label="Upload Document" value="file" icon={<CloudUploadIcon />} iconPosition="start" />
+                  </TabList>
                 </Box>
-
-                {errorMessage && (
-                  <Alert severity="error">
-                    {errorMessage}
-                  </Alert>
-                )}
-
-                {/* Analyze Button */}
-                <Button
-                  variant="outlined"
-                  startIcon={(analyzing || extractingText) ? <CircularProgress size={20} /> : <AnalyticsIcon />}
-                  onClick={handleAnalyze}
-                  disabled={!selectedFile || analyzing || extractingText}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  {extractingText ? 'Extracting Text...' : analyzing ? 'Analyzing...' : 'Analyze Document'}
-                </Button>
-              </Stack>
+                
+                <TabPanel value="text" sx={{ p: 3 }}>
+                  <Stack spacing={3}>
+                    <Typography variant="body1">
+                      Enter your text below and click "Check Grammar" to review your text.
+                    </Typography>
+                    
+                    <TextField
+                      label="Text to check"
+                      multiline
+                      rows={6}
+                      fullWidth
+                      variant="outlined"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder="Type or paste your text here..."
+                    />
+                    
+                    <Button
+                      variant="contained"
+                      startIcon={checking ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                      onClick={handleCheckGrammar}
+                      disabled={checking || !inputText.trim()}
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      {checking ? 'Checking...' : 'Check Grammar'}
+                    </Button>
+                  </Stack>
+                </TabPanel>
+                
+                <TabPanel value="file" sx={{ p: 3 }}>
+                  <Stack spacing={3}>
+                    <Typography variant="body1">
+                      Upload a PDF or TXT document to check its grammar and spelling.
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Button
+                        component="label"
+                        variant="outlined"
+                        startIcon={<CloudUploadIcon />}
+                      >
+                        Upload Document
+                        <VisuallyHiddenInput 
+                          type="file" 
+                          accept=".pdf,.txt,.doc,.docx"
+                          onChange={handleFileChange}
+                        />
+                      </Button>
+                      {selectedFile && (
+                        <Typography variant="body2" color="text.secondary">
+                          Selected: {selectedFile.name}
+                        </Typography>
+                      )}
+                    </Box>
+                    
+                    <Button
+                      variant="contained"
+                      startIcon={(checking || extractingText) ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                      onClick={handleCheckGrammar}
+                      disabled={!selectedFile || checking || extractingText}
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      {extractingText ? 'Extracting Text...' : checking ? 'Checking...' : 'Check Grammar'}
+                    </Button>
+                  </Stack>
+                </TabPanel>
+              </TabContext>
             </Paper>
 
+            {errorMessage && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {errorMessage}
+              </Alert>
+            )}
+
             {/* Results Section */}
-            {analysisResults && (
+            {grammarResults && (
               <Paper 
                 elevation={0} 
                 variant="outlined"
                 sx={{ p: 3, borderRadius: 2 }}
               >
-                <Typography variant="h6" gutterBottom>
-                  Grammar Checker Results
-                </Typography>
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body1">
-                    {analysisResults}
-                  </Typography>
-                </Box>
+                <Stack spacing={3}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6">
+                      Grammar Check Results
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        bgcolor: theme => alpha(theme.palette.success.main, 0.1), 
+                        p: 1, 
+                        borderRadius: 1 
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ mr: 1 }}>
+                        Grammar Score:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="bold" color="success.main">
+                        {grammarResults.score}/100
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Divider />
+                  
+                  {/* Corrections Summary */}
+                  <Box>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Identified Issues ({grammarResults.issues.length})
+                    </Typography>
+                    
+                    <Stack spacing={2} sx={{ mt: 2 }}>
+                      {grammarResults.issues.map((issue, index) => (
+                        <Card key={index} variant="outlined">
+                          <CardContent>
+                            <Typography color="text.secondary" variant="body2" sx={{ mb: 1 }}>
+                              {issue.type.charAt(0).toUpperCase() + issue.type.slice(1)} issue
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  textDecoration: 'line-through', 
+                                  color: 'error.main', 
+                                  fontWeight: 'medium' 
+                                }}
+                              >
+                                {issue.original}
+                              </Typography>
+                              <span>→</span>
+                              <Typography 
+                                variant="body2"
+                                sx={{ 
+                                  color: 'success.main', 
+                                  fontWeight: 'medium' 
+                                }}
+                              >
+                                {issue.suggestion}
+                              </Typography>
+                            </Box>
+                            <Typography variant="body2">
+                              {issue.explanation}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  </Box>
+                  
+                  {/* Corrected Text */}
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Text with Corrections
+                    </Typography>
+                    <Paper 
+                      variant="outlined" 
+                      sx={{ p: 2, bgcolor: alpha('#f5f5f5', 0.5), borderRadius: 1 }}
+                    >
+                      {renderHighlightedText()}
+                    </Paper>
+                  </Box>
+                </Stack>
               </Paper>
             )}
           </Stack>
