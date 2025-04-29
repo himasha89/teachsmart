@@ -330,17 +330,20 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
                     <TextField
                       label="Text to check"
                       multiline
-                      rows={6}
+                      rows={4}
                       fullWidth
                       variant="outlined"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       placeholder="Type or paste your text here..."
+                      InputProps={{
+                        style: { cursor: 'text', height: '100px' },
+                      }}
                     />
                     
                     <Button
-                      variant="contained"
-                      startIcon={checking ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                      variant="outlined"
+                      startIcon={checking ? <CircularProgress size={20}  /> : <CheckCircleIcon />}
                       onClick={handleCheckGrammar}
                       disabled={checking || !inputText.trim()}
                       sx={{ alignSelf: 'flex-start' }}
@@ -377,7 +380,7 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
                     </Box>
                     
                     <Button
-                      variant="contained"
+                      variant="outlined"
                       startIcon={(checking || extractingText) ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
                       onClick={handleCheckGrammar}
                       disabled={!selectedFile || checking || extractingText}
