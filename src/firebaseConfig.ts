@@ -12,13 +12,13 @@ import { getFunctions } from 'firebase/functions';
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyAc0tJlynuOPlGKpqHEuL1OIVYxi70-dns",
-  authDomain: "teachsmart-31be9.firebaseapp.com",
-  projectId: "teachsmart-31be9",
-  storageBucket: "teachsmart-31be9.firebasestorage.app",
-  messagingSenderId: "543349576000",
-  appId: "1:543349576000:web:a8ebc761eb557123ab6aa5",
-  measurementId: "G-P5TVFLWR7E"
+  apiKey: "AIzaSyBaM-brr-d5SCEHF5aFbDUqbWhjGgp131o",
+  authDomain: "teachsmart-62854.firebaseapp.com",
+  projectId: "teachsmart-62854",
+  storageBucket: "teachsmart-62854.firebasestorage.app",
+  messagingSenderId: "885246331207",
+  appId: "1:885246331207:web:2a52cd7e50e54d161ea462",
+  measurementId: "G-JNSS02GHVH"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();

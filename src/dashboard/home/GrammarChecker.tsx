@@ -60,6 +60,9 @@ interface GrammarCheckResponse {
   score: number;
 }
 
+// API URL for grammar checking
+const GRAMMAR_API_URL = process.env.REACT_APP_GRAMMAR_API_URL || 'http://localhost:8080';
+
 export default function GrammarChecker(props: { disableCustomTheme?: boolean }) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [tabValue, setTabValue] = React.useState('text');
@@ -148,35 +151,42 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
         }
       }
 
-      // This is a mock response - we'll implement the real API call later
-      // For now, let's simulate a grammar check response
-      const mockResponse: GrammarCheckResponse = {
-        correctedText: textToCheck.replace("its", "it's").replace("dont", "don't"),
-        issues: [
-          {
-            original: "its",
-            suggestion: "it's",
-            type: "grammar",
-            explanation: "Use 'it's' as a contraction of 'it is' or 'it has'.",
-            startIndex: textToCheck.indexOf("its"),
-            endIndex: textToCheck.indexOf("its") + 3
+      // Call the grammar check API with timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      try {
+        const response = await fetch(`${GRAMMAR_API_URL}/check_grammar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          {
-            original: "dont",
-            suggestion: "don't",
-            type: "spelling",
-            explanation: "The word 'dont' should have an apostrophe: 'don't'.",
-            startIndex: textToCheck.indexOf("dont"),
-            endIndex: textToCheck.indexOf("dont") + 4
+          body: JSON.stringify({
+            data: { text: textToCheck }
+          }),
+          signal: controller.signal
+        });
+      
+        clearTimeout(timeoutId);
+      
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API error (${response.status}): ${errorText}`);
+        }
+      
+        const responseData = await response.json();
+        setGrammarResults(responseData.result);
+      } catch (error: unknown) {
+        // Type-safe error handling
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            throw new Error('Request timed out. The grammar check is taking longer than expected.');
           }
-        ],
-        score: 85
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setGrammarResults(mockResponse);
+          throw error;
+        } else {
+          // Handle case where error is not an Error object
+          throw new Error('An unknown error occurred');
+        }
+      }
     } catch (error) {
       console.error('Grammar check error:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to check grammar. Please try again.');
@@ -193,7 +203,7 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
 
     // Sort issues by start index to process them in order
     const sortedIssues = [...grammarResults.issues].sort((a, b) => a.startIndex - b.startIndex);
-    const text = tabValue === 'text' ? inputText : (selectedFile ? selectedFile.name : '');
+    const text = grammarResults.correctedText;
     let lastIndex = 0;
     const segments = [];
 
@@ -202,7 +212,7 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
       if (issue.startIndex > lastIndex) {
         segments.push(
           <span key={`text-${idx}`}>
-            {grammarResults.correctedText.substring(lastIndex, issue.startIndex)}
+            {text.substring(lastIndex, issue.startIndex)}
           </span>
         );
       }
@@ -273,10 +283,10 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
     });
 
     // Add text after the last issue
-    if (lastIndex < grammarResults.correctedText.length) {
+    if (lastIndex < text.length) {
       segments.push(
         <span key="text-last">
-          {grammarResults.correctedText.substring(lastIndex)}
+          {text.substring(lastIndex)}
         </span>
       );
     }
@@ -437,42 +447,48 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
                       Identified Issues ({grammarResults.issues.length})
                     </Typography>
                     
-                    <Stack spacing={2} sx={{ mt: 2 }}>
-                      {grammarResults.issues.map((issue, index) => (
-                        <Card key={index} variant="outlined">
-                          <CardContent>
-                            <Typography color="text.secondary" variant="body2" sx={{ mb: 1 }}>
-                              {issue.type.charAt(0).toUpperCase() + issue.type.slice(1)} issue
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  textDecoration: 'line-through', 
-                                  color: 'error.main', 
-                                  fontWeight: 'medium' 
-                                }}
-                              >
-                                {issue.original}
+                    {grammarResults.issues.length === 0 ? (
+                      <Alert severity="success" sx={{ mt: 2 }}>
+                        No grammar issues found in your text!
+                      </Alert>
+                    ) : (
+                      <Stack spacing={2} sx={{ mt: 2 }}>
+                        {grammarResults.issues.map((issue, index) => (
+                          <Card key={index} variant="outlined">
+                            <CardContent>
+                              <Typography color="text.secondary" variant="body2" sx={{ mb: 1 }}>
+                                {issue.type.charAt(0).toUpperCase() + issue.type.slice(1)} issue
                               </Typography>
-                              <span>→</span>
-                              <Typography 
-                                variant="body2"
-                                sx={{ 
-                                  color: 'success.main', 
-                                  fontWeight: 'medium' 
-                                }}
-                              >
-                                {issue.suggestion}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    textDecoration: 'line-through', 
+                                    color: 'error.main', 
+                                    fontWeight: 'medium' 
+                                  }}
+                                >
+                                  {issue.original}
+                                </Typography>
+                                <span>→</span>
+                                <Typography 
+                                  variant="body2"
+                                  sx={{ 
+                                    color: 'success.main', 
+                                    fontWeight: 'medium' 
+                                  }}
+                                >
+                                  {issue.suggestion}
+                                </Typography>
+                              </Box>
+                              <Typography variant="body2">
+                                {issue.explanation}
                               </Typography>
-                            </Box>
-                            <Typography variant="body2">
-                              {issue.explanation}
-                            </Typography>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </Stack>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </Stack>
+                    )}
                   </Box>
                   
                   {/* Corrected Text */}
