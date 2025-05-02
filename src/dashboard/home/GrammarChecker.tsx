@@ -61,7 +61,7 @@ interface GrammarCheckResponse {
 }
 
 // API URL for grammar checking
-const GRAMMAR_API_URL = process.env.REACT_APP_GRAMMAR_API_URL || 'http://localhost:8080';
+const GRAMMAR_API_URL = 'https://grammar-check-service-885246331207.us-central1.run.app';
 
 export default function GrammarChecker(props: { disableCustomTheme?: boolean }) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
