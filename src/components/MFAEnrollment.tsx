@@ -25,10 +25,7 @@ import {
   unenrollMFA
 } from '../mfa/firebase-mfa';
 
-// Enterprise reCAPTCHA site key
-const RECAPTCHA_SITE_KEY = '6LeJqSwrAAAAADSJarJGqn2sJ67uqmTCrcvG5WMk';
-
-// IMPORTANT: Check if we're in development mode
+// Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 interface MFAEnrollmentProps {
@@ -53,16 +50,46 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   
   // Development mode state for simulation
   const [devMode, setDevMode] = useState<boolean>(isDevelopment);
+  
+  // Reference to track if component is mounted
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    // Set mounted flag
+    isMountedRef.current = true;
+    
     // Check if user already has MFA enabled
     checkMFAStatus();
     
+    // Create a permanent reCAPTCHA container if it doesn't exist
+    ensureRecaptchaContainer();
+    
     return () => {
+      // Mark component as unmounted
+      isMountedRef.current = false;
+      
       // Clean up RecaptchaVerifier when component unmounts
       cleanupRecaptchaVerifier();
     };
   }, [user]);
+
+  // Ensure we have a stable reCAPTCHA container
+  const ensureRecaptchaContainer = () => {
+    // Check if we need to create a permanent container at the document level
+    if (!document.getElementById('global-recaptcha-container')) {
+      const container = document.createElement('div');
+      container.id = 'global-recaptcha-container';
+      // Position it somewhere it won't interfere with layout but still be in the DOM
+      container.style.position = 'fixed';
+      container.style.bottom = '0';
+      container.style.left = '0';
+      container.style.width = '0px';
+      container.style.height = '0px';
+      container.style.overflow = 'hidden';
+      container.style.visibility = 'hidden';
+      document.body.appendChild(container);
+    }
+  };
 
   const cleanupRecaptchaVerifier = () => {
     if (recaptchaVerifierRef.current) {
@@ -72,12 +99,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         console.error('Error clearing reCAPTCHA:', e);
       }
       recaptchaVerifierRef.current = null;
-      
-      // Also clear the container
-      const recaptchaContainer = document.getElementById('recaptcha-container');
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = '';
-      }
     }
   };
 
@@ -85,17 +106,24 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     try {
       setLoading(true);
       const enabled = await isMFAEnabled(user);
-      setHasMFA(enabled);
       
-      if (enabled) {
-        // Get enrolled factors information
-        const multiFactorUser = multiFactor(user);
-        setEnrolledFactors(multiFactorUser.enrolledFactors);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setHasMFA(enabled);
+        
+        if (enabled) {
+          // Get enrolled factors information
+          const multiFactorUser = multiFactor(user);
+          setEnrolledFactors(multiFactorUser.enrolledFactors);
+        }
       }
     } catch (err) {
       console.error('Error checking MFA status:', err);
     } finally {
-      setLoading(false);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -120,31 +148,36 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         console.log('Development mode: Using mock verification');
         // Simulate verification process with a delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setVerificationId('dev-verification-id-' + Date.now());
-        setActiveStep(1);
-        setLoading(false);
+        
+        // Check if component is still mounted before updating state
+        if (isMountedRef.current) {
+          setVerificationId('dev-verification-id-' + Date.now());
+          setActiveStep(1);
+        }
         return;
       }
       
-      // PRODUCTION FLOW WITH DOMAIN FIX
+      // PRODUCTION FLOW WITH STABLE DOM ELEMENTS
       const auth = getAuth();
       
-      // Clear any existing recaptcha first
+      // Clean up any existing verifier
       cleanupRecaptchaVerifier();
       
-      // Create a new container each time
-      const recaptchaContainer = document.getElementById('recaptcha-container');
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = '';
+      // Get a stable container that won't be removed 
+      const recaptchaContainer = document.getElementById('global-recaptcha-container');
+      if (!recaptchaContainer) {
+        throw new Error('reCAPTCHA container not found');
       }
       
-      // Create a new RecaptchaVerifier with MINIMAL configuration
-      // IMPORTANT: No sitekey specified, let Firebase handle it internally
+      // Create RecaptchaVerifier with minimal configuration
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         auth,
-        'recaptcha-container',
+        recaptchaContainer,
         { size: 'invisible' }
       );
+      
+      // Render the verifier before using it
+      await recaptchaVerifierRef.current.render();
       
       // Get the multi-factor session
       const multiFactorUser = multiFactor(user);
@@ -160,25 +193,36 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         recaptchaVerifierRef.current
       );
       
-      setVerificationId(vId);
-      setActiveStep(1);
+      // Check if component is still mounted before updating state
+      if (isMountedRef.current) {
+        setVerificationId(vId);
+        setActiveStep(1);
+      }
     } catch (err: any) {
       console.error('Error sending verification code:', err);
       
-      // Specific error handling
+      // Handle different error scenarios
       let errorMessage = 'Failed to send verification code. Please try again.';
       
       if (err.code === 'auth/missing-recaptcha-token') {
         errorMessage = 'reCAPTCHA verification failed. Please try on a registered domain.';
       } else if (err.code === 'auth/argument-error') {
-        errorMessage = 'Domain not configured properly for reCAPTCHA. Check your Firebase and reCAPTCHA settings.';
+        errorMessage = 'Domain not configured properly for reCAPTCHA. Check your Firebase settings.';
+      } else if (err.message && err.message.includes('client element has been removed')) {
+        errorMessage = 'reCAPTCHA element was removed. Please try again.';
       } else if (err.message) {
         errorMessage = err.message;
       }
       
-      setError(errorMessage);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setError(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -196,8 +240,11 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       if (devMode || isDevelopment) {
         console.log('Development mode: Simulating successful enrollment');
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setHasMFA(true);
-        onSuccess();
+        
+        if (isMountedRef.current) {
+          setHasMFA(true);
+          onSuccess();
+        }
         return;
       }
       
@@ -211,16 +258,24 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       const multiFactorUser = multiFactor(user);
       await multiFactorUser.enroll(multiFactorAssertion, "Phone");
       
-      setHasMFA(true);
-      await checkMFAStatus();
-      
-      // Call onSuccess callback
-      onSuccess();
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setHasMFA(true);
+        await checkMFAStatus();
+        onSuccess();
+      }
     } catch (err: any) {
       console.error('MFA enrollment error:', err);
-      setError(err.message || 'Invalid verification code. Please try again.');
+      
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setError(err.message || 'Invalid verification code. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -233,10 +288,13 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       if (devMode || isDevelopment) {
         console.log('Development mode: Simulating MFA disable');
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setHasMFA(false);
-        setEnrolledFactors([]);
-        setOpenDialog(false);
-        onSuccess();
+        
+        if (isMountedRef.current) {
+          setHasMFA(false);
+          setEnrolledFactors([]);
+          setOpenDialog(false);
+          onSuccess();
+        }
         return;
       }
       
@@ -245,17 +303,25 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         await unenrollMFA(user, factor);
       }
       
-      setHasMFA(false);
-      setEnrolledFactors([]);
-      setOpenDialog(false);
-      
-      // Call onSuccess with no arguments
-      onSuccess();
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setHasMFA(false);
+        setEnrolledFactors([]);
+        setOpenDialog(false);
+        onSuccess();
+      }
     } catch (err: any) {
       console.error('Error disabling MFA:', err);
-      setError(err.message || 'Failed to disable MFA. Please try again.');
+      
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setError(err.message || 'Failed to disable MFA. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
   
@@ -394,12 +460,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             autoFocus
             disabled={loading}
           />
-          
-          {/* reCAPTCHA container - must be in the DOM but can be invisible */}
-          <div 
-            id="recaptcha-container" 
-            style={{ marginBottom: '10px' }}
-          ></div>
           
           <Button 
             variant="contained" 
