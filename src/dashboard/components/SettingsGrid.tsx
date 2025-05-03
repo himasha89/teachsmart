@@ -64,6 +64,12 @@ const data: StatCardProps[] = [
     description: 'Manage system performance and integration options',
     icon: <GiCog size={40} style={{ color: '#480CA8' }} />,
     path: '/dashboard/settings/system',
+  },
+  {
+    title: 'Security & Privacy',
+    description: 'Manage authentication and data privacy settings',
+    icon: <GiPadlock size={40} style={{ color: '#F72585' }} />,
+    path: '/dashboard/settings/security',
   }
 ];
 
