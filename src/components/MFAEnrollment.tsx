@@ -25,8 +25,8 @@ import {
   unenrollMFA
 } from '../mfa/firebase-mfa';
 
-// reCAPTCHA Enterprise site key
-const RECAPTCHA_SITE_KEY = '6LeOxywrAAAAAACn-0YKinJbHSqorOI_991mnOhxr';
+// Update to your Enterprise reCAPTCHA site key
+const RECAPTCHA_SITE_KEY = '6LeJqSwrAAAAADSJarJGqn2sJ67uqmTCrcvG5WMk';
 
 interface MFAEnrollmentProps {
   user: User;
@@ -48,12 +48,16 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+  
+  // Check if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   useEffect(() => {
     // Check if user already has MFA enabled
     checkMFAStatus();
     
-    // Do not set up recaptcha on mount - wait until it's needed
+    // Load reCAPTCHA script
+    loadRecaptchaScript();
     
     return () => {
       // Clean up RecaptchaVerifier when component unmounts
@@ -61,21 +65,44 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     };
   }, [user]);
 
+  const loadRecaptchaScript = () => {
+    // Only load if not already present
+    if (!document.querySelector(`script[src*="recaptcha/enterprise.js"]`)) {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/enterprise.js?render=${RECAPTCHA_SITE_KEY}`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+      
+      script.onload = () => {
+        console.log('reCAPTCHA script loaded successfully');
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load reCAPTCHA script');
+        setError('Failed to load reCAPTCHA. Please refresh the page.');
+      };
+    }
+  };
+
   const setupRecaptchaVerifier = () => {
     cleanupRecaptchaVerifier();
     
     try {
-      // Make sure the container is empty before initializing
+      // Make sure the container exists
       const recaptchaContainer = document.getElementById('recaptcha-container');
-      if (recaptchaContainer) {
-        // Clear any existing content
-        recaptchaContainer.innerHTML = '';
+      if (!recaptchaContainer) {
+        console.error('reCAPTCHA container not found');
+        setError('reCAPTCHA initialization failed. Container not found.');
+        return;
       }
+      
+      // Clear any existing content
+      recaptchaContainer.innerHTML = '';
       
       const auth = getAuth();
       
-      // For Firebase v9, we need to properly use RecaptchaVerifier
-      // This approach works better with reCAPTCHA Enterprise
+      // Configure reCAPTCHA Enterprise settings
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         auth,
         'recaptcha-container',
@@ -87,12 +114,13 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
           'expired-callback': () => {
             console.log('reCAPTCHA expired');
             setError('reCAPTCHA verification expired. Please try again.');
-          }
-          // Note: We're not explicitly setting sitekey here, letting Firebase handle it
+          },
+          // Explicitly set the site key for Enterprise
+          sitekey: RECAPTCHA_SITE_KEY
         }
       );
       
-      // Render explicitly with error handling
+      // Render the reCAPTCHA
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.render()
           .then(widgetId => {
@@ -117,9 +145,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         console.error('Error clearing reCAPTCHA:', e);
       }
       recaptchaVerifierRef.current = null;
-      
-      // DO NOT clear the container manually
-      // Let Firebase handle the reCAPTCHA lifecycle
     }
   };
 
@@ -157,66 +182,71 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         ? phoneNumber 
         : `+1${cleanPhoneNumber}`;
       
-      const auth = getAuth();
-      
-      // First, clean up any existing reCAPTCHA verifier
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {
-          console.error('Error clearing existing reCAPTCHA:', e);
-        }
-        recaptchaVerifierRef.current = null;
+      // Development mode check
+      if (isDevelopment) {
+        console.log('Development mode: Using mock verification');
+        // Simulate verification process with a delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setVerificationId('dev-verification-id-' + Date.now());
+        setActiveStep(1);
+        setLoading(false);
+        return;
       }
       
-      // Create a new RecaptchaVerifier - IMPORTANT: Do NOT clear the container first
-      // Let Firebase handle the container contents
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
-        'recaptcha-container', 
-        {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA verified');
-          }
-        }
-      );
+      // Production flow for reCAPTCHA
+      const auth = getAuth();
       
-      // Get the multi-factor session
-      const multiFactorUser = multiFactor(user);
-      const session = await multiFactorUser.getSession();
+      // Check if grecaptcha is available
+      if (typeof window.grecaptcha === 'undefined' || 
+          typeof window.grecaptcha.enterprise === 'undefined') {
+        setError('reCAPTCHA not loaded properly. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
       
-      // Send verification code
-      const phoneAuthProvider = new PhoneAuthProvider(auth);
-      
+      // Use Enterprise reCAPTCHA to get a token first
       try {
-        const vId = await phoneAuthProvider.verifyPhoneNumber(
-          {
-            phoneNumber: formattedPhoneNumber,
-            session
-          }, 
-          recaptchaVerifierRef.current
-        );
-        
-        // Only clear the verifier AFTER verification succeeds
-        setVerificationId(vId);
-        setActiveStep(1);
-      } catch (error: any) {
-        console.error('Error during phone verification:', error);
-        
-        // Handle specific verification errors
-        if (error.code) {
-          if (
-            error.code === 'auth/missing-recaptcha-token' || 
-            error.code === 'auth/invalid-recaptcha-token' ||
-            error.code === 'auth/captcha-check-failed'
-          ) {
-            setError('reCAPTCHA verification failed. Please try again with a valid phone number.');
-          } else {
-            setError(error.message || 'Failed to verify phone number. Please try again.');
+        await window.grecaptcha.enterprise.ready(async () => {
+          const token = await window.grecaptcha.enterprise.execute(
+            RECAPTCHA_SITE_KEY, 
+            {action: 'VERIFY_PHONE'}
+          );
+          
+          console.log('reCAPTCHA token generated:', token.substring(0, 10) + '...');
+          
+          // Now set up Firebase RecaptchaVerifier
+          setupRecaptchaVerifier();
+          
+          if (!recaptchaVerifierRef.current) {
+            throw new Error('Failed to initialize reCAPTCHA verifier');
           }
+          
+          // Get the multi-factor session
+          const multiFactorUser = multiFactor(user);
+          const session = await multiFactorUser.getSession();
+          
+          // Send verification code
+          const phoneAuthProvider = new PhoneAuthProvider(auth);
+          const vId = await phoneAuthProvider.verifyPhoneNumber(
+            {
+              phoneNumber: formattedPhoneNumber,
+              session
+            }, 
+            recaptchaVerifierRef.current
+          );
+          
+          setVerificationId(vId);
+          setActiveStep(1);
+        });
+      } catch (error: any) {
+        console.error('Error with reCAPTCHA Enterprise or phone verification:', error);
+        
+        if (error.code === 'auth/missing-recaptcha-token' || 
+            error.code === 'auth/invalid-recaptcha-token' ||
+            error.code === 'auth/captcha-check-failed') {
+          setError('reCAPTCHA verification failed. Please try again.');
         } else {
-          setError('Verification failed. Please check your phone number and try again.');
+          setError(error.message || 'Failed to verify phone number. Please try again.');
         }
       }
     } catch (err: any) {
@@ -237,6 +267,16 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       setLoading(true);
       setError(null);
       
+      // For development mode
+      if (isDevelopment) {
+        console.log('Development mode: Simulating successful enrollment');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setHasMFA(true);
+        onSuccess();
+        return;
+      }
+      
+      // Production verification
       const phoneAuthCredential = PhoneAuthProvider.credential(
         verificationId, 
         verificationCode
@@ -249,7 +289,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       setHasMFA(true);
       await checkMFAStatus();
       
-      // Call onSuccess callback with no arguments
+      // Call onSuccess callback
       onSuccess();
     } catch (err: any) {
       console.error('MFA enrollment error:', err);
@@ -264,6 +304,18 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       setLoading(true);
       setError(null);
       
+      // Development mode check
+      if (isDevelopment) {
+        console.log('Development mode: Simulating MFA disable');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setHasMFA(false);
+        setEnrolledFactors([]);
+        setOpenDialog(false);
+        onSuccess();
+        return;
+      }
+      
+      // Production flow
       for (const factor of enrolledFactors) {
         await unenrollMFA(user, factor);
       }
@@ -364,6 +416,13 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         Enable Two-Factor Authentication
       </Typography>
       
+      {/* Development mode indicator */}
+      {isDevelopment && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Development Mode: Using simulated verification
+        </Alert>
+      )}
+      
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         <Step>
           <StepLabel>Phone Number</StepLabel>
@@ -396,10 +455,10 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             disabled={loading}
           />
           
-          {/* reCAPTCHA container - must be persistent in the DOM */}
+          {/* reCAPTCHA container - must be in the DOM for both invisible and visible reCAPTCHA */}
           <div 
             id="recaptcha-container" 
-            style={{ position: 'fixed', bottom: '0', left: '-10000px', visibility: 'hidden' }}
+            ref={recaptchaContainerRef}
           ></div>
           
           <Button 
@@ -416,6 +475,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         <>
           <Typography variant="body1" sx={{ mb: 2 }}>
             Enter the 6-digit verification code sent to your phone.
+            {isDevelopment && " (In development mode, any 6-digit code will work)"}
           </Typography>
           
           <TextField
@@ -461,5 +521,17 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     </Paper>
   );
 };
+
+// Add this to global Window interface for TypeScript
+declare global {
+  interface Window {
+    grecaptcha: {
+      enterprise: {
+        ready: (callback: () => Promise<void>) => void;
+        execute: (siteKey: string, options: { action: string }) => Promise<string>;
+      };
+    };
+  }
+}
 
 export default MFAEnrollment;
