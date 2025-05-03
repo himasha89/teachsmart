@@ -5,7 +5,8 @@ import {
   PhoneAuthProvider, 
   RecaptchaVerifier, 
   PhoneMultiFactorGenerator,
-  getAuth
+  getAuth,
+  sendEmailVerification
 } from 'firebase/auth';
 import { 
   Box, 
@@ -18,15 +19,13 @@ import {
   Step,
   Stepper,
   StepLabel,
-  Dialog
+  Dialog,
+  Link
 } from '@mui/material';
 import { 
   isMFAEnabled,
   unenrollMFA
 } from '../mfa/firebase-mfa';
-
-// Check if we're in development mode
-const isDevelopment = process.env.NODE_ENV === 'development';
 
 interface MFAEnrollmentProps {
   user: User;
@@ -42,14 +41,14 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [verificationCode, setVerificationCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<boolean>(false);
+  const [needsEmailVerification, setNeedsEmailVerification] = useState<boolean>(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState<boolean>(false);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [hasMFA, setHasMFA] = useState<boolean>(false);
   const [enrolledFactors, setEnrolledFactors] = useState<any[]>([]);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  
-  // Development mode state for simulation
-  const [devMode, setDevMode] = useState<boolean>(isDevelopment);
   
   // Reference to track if component is mounted
   const isMountedRef = useRef(true);
@@ -60,6 +59,9 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     
     // Check if user already has MFA enabled
     checkMFAStatus();
+    
+    // Check if email is verified
+    checkEmailVerification();
     
     // Create a permanent reCAPTCHA container if it doesn't exist
     ensureRecaptchaContainer();
@@ -72,6 +74,70 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       cleanupRecaptchaVerifier();
     };
   }, [user]);
+
+  // Check if user's email is verified
+  const checkEmailVerification = () => {
+    if (user && !user.emailVerified) {
+      setNeedsEmailVerification(true);
+    } else {
+      setNeedsEmailVerification(false);
+    }
+  };
+
+  // Send email verification
+  const sendVerificationEmail = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Send verification email
+      await sendEmailVerification(user);
+      
+      if (isMountedRef.current) {
+        setVerificationEmailSent(true);
+      }
+    } catch (err: any) {
+      console.error('Error sending verification email:', err);
+      
+      if (isMountedRef.current) {
+        setError(err.message || 'Failed to send verification email');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Refresh user to check if email has been verified
+  const refreshUserEmailVerification = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Reload user data
+      await user.reload();
+      
+      if (isMountedRef.current) {
+        if (user.emailVerified) {
+          setNeedsEmailVerification(false);
+          setVerificationEmailSent(false);
+        } else {
+          setError('Email not verified yet. Please check your inbox and verify your email.');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error refreshing user data:', err);
+      
+      if (isMountedRef.current) {
+        setError(err.message || 'Failed to refresh user data');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  };
 
   // Ensure we have a stable reCAPTCHA container
   const ensureRecaptchaContainer = () => {
@@ -86,7 +152,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       container.style.width = '0px';
       container.style.height = '0px';
       container.style.overflow = 'hidden';
-      container.style.visibility = 'hidden';
       document.body.appendChild(container);
     }
   };
@@ -136,6 +201,8 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     try {
       setLoading(true);
       setError(null);
+      setConfigError(false);
+      setNeedsEmailVerification(false); // Reset email verification flag
       
       // Format the phone number
       const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
@@ -143,21 +210,13 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         ? phoneNumber 
         : `+1${cleanPhoneNumber}`;
       
-      // Development mode or test mode
-      if (devMode || isDevelopment) {
-        console.log('Development mode: Using mock verification');
-        // Simulate verification process with a delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Check if component is still mounted before updating state
-        if (isMountedRef.current) {
-          setVerificationId('dev-verification-id-' + Date.now());
-          setActiveStep(1);
-        }
+      // Check if email is verified
+      if (!user.emailVerified) {
+        setNeedsEmailVerification(true);
         return;
       }
       
-      // PRODUCTION FLOW WITH STABLE DOM ELEMENTS
+      // PRODUCTION FLOW WITH ERROR HANDLING
       const auth = getAuth();
       
       // Clean up any existing verifier
@@ -185,18 +244,36 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       
       // Send verification code using the standard Firebase approach
       const phoneAuthProvider = new PhoneAuthProvider(auth);
-      const vId = await phoneAuthProvider.verifyPhoneNumber(
-        {
-          phoneNumber: formattedPhoneNumber,
-          session
-        }, 
-        recaptchaVerifierRef.current
-      );
       
-      // Check if component is still mounted before updating state
-      if (isMountedRef.current) {
-        setVerificationId(vId);
-        setActiveStep(1);
+      try {
+        const vId = await phoneAuthProvider.verifyPhoneNumber(
+          {
+            phoneNumber: formattedPhoneNumber,
+            session
+          }, 
+          recaptchaVerifierRef.current
+        );
+        
+        // Check if component is still mounted before updating state
+        if (isMountedRef.current) {
+          setVerificationId(vId);
+          setActiveStep(1);
+        }
+      } catch (verifyError: any) {
+        console.error('Phone verification error:', verifyError);
+        
+        if (verifyError.code === 'auth/operation-not-allowed') {
+          // This is a configuration error - SMS MFA not enabled in Firebase
+          setConfigError(true);
+          setError('SMS-based MFA is not enabled in your Firebase project.');
+        } else if (verifyError.code === 'auth/unverified-email') {
+          // Email verification required
+          setNeedsEmailVerification(true);
+        } else if (verifyError.message && verifyError.message.includes('client element has been removed')) {
+          setError('reCAPTCHA element was removed. Please try again.');
+        } else {
+          setError(verifyError.message || 'Failed to verify phone number. Please try again.');
+        }
       }
     } catch (err: any) {
       console.error('Error sending verification code:', err);
@@ -208,8 +285,14 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         errorMessage = 'reCAPTCHA verification failed. Please try on a registered domain.';
       } else if (err.code === 'auth/argument-error') {
         errorMessage = 'Domain not configured properly for reCAPTCHA. Check your Firebase settings.';
-      } else if (err.message && err.message.includes('client element has been removed')) {
-        errorMessage = 'reCAPTCHA element was removed. Please try again.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        // This is a configuration error - SMS MFA not enabled in Firebase
+        setConfigError(true);
+        errorMessage = 'SMS-based MFA is not enabled in your Firebase project.';
+      } else if (err.code === 'auth/unverified-email') {
+        // Email verification required
+        setNeedsEmailVerification(true);
+        return; // Return early to prevent showing error message
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -235,18 +318,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
-      // For development mode
-      if (devMode || isDevelopment) {
-        console.log('Development mode: Simulating successful enrollment');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (isMountedRef.current) {
-          setHasMFA(true);
-          onSuccess();
-        }
-        return;
-      }
       
       // Production verification
       const phoneAuthCredential = PhoneAuthProvider.credential(
@@ -284,20 +355,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       setLoading(true);
       setError(null);
       
-      // Development mode check
-      if (devMode || isDevelopment) {
-        console.log('Development mode: Simulating MFA disable');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (isMountedRef.current) {
-          setHasMFA(false);
-          setEnrolledFactors([]);
-          setOpenDialog(false);
-          onSuccess();
-        }
-        return;
-      }
-      
       // Production flow
       for (const factor of enrolledFactors) {
         await unenrollMFA(user, factor);
@@ -324,14 +381,87 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       }
     }
   };
-  
-  // Toggle dev mode (for testing only)
-  const toggleDevMode = () => {
-    setDevMode(!devMode);
-  };
 
-  if (loading && !hasMFA) {
+  if (loading && !hasMFA && !needsEmailVerification) {
     return <CircularProgress sx={{ display: 'block', mx: 'auto' }} />;
+  }
+
+  // Email verification screen
+  if (needsEmailVerification) {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          maxWidth: 400,
+          width: '100%',
+          mx: 'auto'
+        }}
+      >
+        <Typography variant="h5" component="h2" gutterBottom>
+          Email Verification Required
+        </Typography>
+        
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          You must verify your email address before setting up two-factor authentication
+        </Alert>
+        
+        {verificationEmailSent ? (
+          <Box>
+            <Typography variant="body1" sx={{ mb: 3 }}>
+              A verification email has been sent to <strong>{user.email}</strong>. 
+              Please check your inbox (and spam folder) and click the verification link.
+            </Typography>
+            
+            <Typography variant="body2" sx={{ mb: 3 }}>
+              Once you've verified your email, click the button below to continue.
+            </Typography>
+            
+            <Box sx={{ mt: 3, display: 'flex', gap: 2, flexDirection: 'column' }}>
+              <Button 
+                variant="contained" 
+                fullWidth
+                onClick={refreshUserEmailVerification}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : "I've Verified My Email"}
+              </Button>
+              
+              <Button 
+                variant="outlined" 
+                fullWidth
+                onClick={sendVerificationEmail}
+                disabled={loading}
+              >
+                Resend Verification Email
+              </Button>
+            </Box>
+          </Box>
+        ) : (
+          <Box>
+            <Typography variant="body1" sx={{ mb: 3 }}>
+              To use two-factor authentication, you need to verify your email address first.
+              Click the button below to send a verification email to <strong>{user.email}</strong>.
+            </Typography>
+            
+            <Button 
+              variant="contained" 
+              fullWidth
+              onClick={sendVerificationEmail}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Send Verification Email'}
+            </Button>
+          </Box>
+        )}
+        
+        {error && (
+          <Alert severity="error" sx={{ mt: 3 }}>
+            {error}
+          </Alert>
+        )}
+      </Paper>
+    );
   }
 
   if (hasMFA) {
@@ -398,6 +528,66 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     );
   }
 
+  // Configuration error alert
+  if (configError) {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          maxWidth: 400,
+          width: '100%',
+          mx: 'auto'
+        }}
+      >
+        <Typography variant="h5" component="h2" gutterBottom>
+          Configuration Error
+        </Typography>
+        
+        <Alert severity="error" sx={{ mb: 3 }}>
+          SMS-based MFA is not enabled in your Firebase project
+        </Alert>
+        
+        <Typography variant="body1" sx={{ mb: 3 }}>
+          To use phone-based two-factor authentication, you need to enable SMS multi-factor authentication in your Firebase project.
+        </Typography>
+        
+        <Typography variant="body2" sx={{ mb: 3 }}>
+          Please follow these steps:
+          <ol>
+            <li>Go to the Firebase Console</li>
+            <li>Select your project</li>
+            <li>Navigate to Authentication → Sign-in method</li>
+            <li>Scroll down to "Multi-factor authentication" section</li>
+            <li>Enable "SMS" as a second factor</li>
+            <li>Set up SMS provider if required</li>
+            <li>Save your changes</li>
+          </ol>
+        </Typography>
+        
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+          <Button 
+            variant="outlined" 
+            href="https://console.firebase.google.com/" 
+            target="_blank"
+          >
+            Go to Firebase Console
+          </Button>
+          
+          <Button 
+            variant="contained"
+            onClick={() => {
+              setConfigError(false);
+              setError(null);
+            }}
+          >
+            Try Again
+          </Button>
+        </Box>
+      </Paper>
+    );
+  }
+
   return (
     <Paper
       elevation={3}
@@ -411,23 +601,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       <Typography variant="h5" component="h2" gutterBottom>
         Enable Two-Factor Authentication
       </Typography>
-      
-      {/* Development/Test mode controls */}
-      {isDevelopment && (
-        <Box sx={{ mb: 2 }}>
-          <Alert severity={devMode ? "warning" : "info"}>
-            {devMode ? "Test Mode: No actual verification will be performed" : "Production Mode: Real verification will be performed"}
-          </Alert>
-          <Button 
-            size="small" 
-            variant="outlined" 
-            onClick={toggleDevMode} 
-            sx={{ mt: 1 }}
-          >
-            {devMode ? "Switch to Production Mode" : "Switch to Test Mode"}
-          </Button>
-        </Box>
-      )}
       
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         <Step>
@@ -475,7 +648,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         <>
           <Typography variant="body1" sx={{ mb: 2 }}>
             Enter the 6-digit verification code sent to your phone.
-            {(devMode || isDevelopment) && " (In test mode, any 6-digit code will work)"}
           </Typography>
           
           <TextField
