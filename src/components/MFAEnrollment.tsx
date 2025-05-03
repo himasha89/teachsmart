@@ -25,12 +25,12 @@ import {
   unenrollMFA
 } from '../mfa/firebase-mfa';
 
-// Check if we're in development mode
-const isDevelopment = process.env.NODE_ENV === 'development';
+// reCAPTCHA Enterprise site key
+const RECAPTCHA_SITE_KEY = '6LeOxywrAAAAAACn-0YKinJbHSqorOI_991mnOhxr';
 
 interface MFAEnrollmentProps {
   user: User;
-  onSuccess: () => void; // Make sure this matches the callback in your parent component
+  onSuccess: () => void;
 }
 
 const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({ 
@@ -47,22 +47,81 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [enrolledFactors, setEnrolledFactors] = useState<any[]>([]);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-
-  // For development mode only
-  const [devMode, setDevMode] = useState<boolean>(isDevelopment);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // Check if user already has MFA enabled
     checkMFAStatus();
     
+    // Do not set up recaptcha on mount - wait until it's needed
+    
     return () => {
       // Clean up RecaptchaVerifier when component unmounts
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
+      cleanupRecaptchaVerifier();
     };
   }, [user]);
+
+  const setupRecaptchaVerifier = () => {
+    cleanupRecaptchaVerifier();
+    
+    try {
+      // Make sure the container is empty before initializing
+      const recaptchaContainer = document.getElementById('recaptcha-container');
+      if (recaptchaContainer) {
+        // Clear any existing content
+        recaptchaContainer.innerHTML = '';
+      }
+      
+      const auth = getAuth();
+      
+      // For Firebase v9, we need to properly use RecaptchaVerifier
+      // This approach works better with reCAPTCHA Enterprise
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        auth,
+        'recaptcha-container',
+        {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA verified successfully');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            setError('reCAPTCHA verification expired. Please try again.');
+          }
+          // Note: We're not explicitly setting sitekey here, letting Firebase handle it
+        }
+      );
+      
+      // Render explicitly with error handling
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.render()
+          .then(widgetId => {
+            console.log('reCAPTCHA widget rendered successfully, ID:', widgetId);
+          })
+          .catch(error => {
+            console.error('Failed to render reCAPTCHA:', error);
+            setError('Failed to initialize reCAPTCHA. Please refresh the page and try again.');
+          });
+      }
+    } catch (err: any) {
+      console.error('Error setting up reCAPTCHA:', err);
+      setError('Failed to initialize reCAPTCHA: ' + err.message);
+    }
+  };
+
+  const cleanupRecaptchaVerifier = () => {
+    if (recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current.clear();
+      } catch (e) {
+        console.error('Error clearing reCAPTCHA:', e);
+      }
+      recaptchaVerifierRef.current = null;
+      
+      // DO NOT clear the container manually
+      // Let Firebase handle the reCAPTCHA lifecycle
+    }
+  };
 
   const checkMFAStatus = async () => {
     try {
@@ -98,31 +157,29 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         ? phoneNumber 
         : `+1${cleanPhoneNumber}`;
       
-      // For development mode, skip actual verification
-      if (devMode) {
-        console.log('Development mode: Skipping actual verification');
-        // Generate a fake verification ID
-        const fakeVerificationId = 'dev-verification-' + Date.now();
-        setVerificationId(fakeVerificationId);
-        setActiveStep(1);
-        setLoading(false);
-        return;
-      }
-      
-      // Production flow
       const auth = getAuth();
       
-      // Clear any existing recaptcha
+      // First, clean up any existing reCAPTCHA verifier
       if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {
+          console.error('Error clearing existing reCAPTCHA:', e);
+        }
         recaptchaVerifierRef.current = null;
       }
       
-      // Simplified reCAPTCHA creation - fewer options to reduce error chances
+      // Create a new RecaptchaVerifier - IMPORTANT: Do NOT clear the container first
+      // Let Firebase handle the container contents
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         auth,
-        'recaptcha-container',
-        { size: 'invisible' }
+        'recaptcha-container', 
+        {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA verified');
+          }
+        }
       );
       
       // Get the multi-factor session
@@ -131,18 +188,39 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       
       // Send verification code
       const phoneAuthProvider = new PhoneAuthProvider(auth);
-      const vId = await phoneAuthProvider.verifyPhoneNumber(
-        {
-          phoneNumber: formattedPhoneNumber,
-          session
-        }, 
-        recaptchaVerifierRef.current
-      );
       
-      setVerificationId(vId);
-      setActiveStep(1);
+      try {
+        const vId = await phoneAuthProvider.verifyPhoneNumber(
+          {
+            phoneNumber: formattedPhoneNumber,
+            session
+          }, 
+          recaptchaVerifierRef.current
+        );
+        
+        // Only clear the verifier AFTER verification succeeds
+        setVerificationId(vId);
+        setActiveStep(1);
+      } catch (error: any) {
+        console.error('Error during phone verification:', error);
+        
+        // Handle specific verification errors
+        if (error.code) {
+          if (
+            error.code === 'auth/missing-recaptcha-token' || 
+            error.code === 'auth/invalid-recaptcha-token' ||
+            error.code === 'auth/captcha-check-failed'
+          ) {
+            setError('reCAPTCHA verification failed. Please try again with a valid phone number.');
+          } else {
+            setError(error.message || 'Failed to verify phone number. Please try again.');
+          }
+        } else {
+          setError('Verification failed. Please check your phone number and try again.');
+        }
+      }
     } catch (err: any) {
-      console.error('Error sending verification code:', err);
+      console.error('Overall error in sendVerificationCode:', err);
       setError(err.message || 'Failed to send verification code. Please try again.');
     } finally {
       setLoading(false);
@@ -159,20 +237,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       setLoading(true);
       setError(null);
       
-      // For development mode
-      if (devMode) {
-        console.log('Development mode: Simulating successful MFA enrollment');
-        // Wait a bit to simulate processing
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setHasMFA(true);
-        
-        // Important: Call onSuccess without arguments since that's what's expected
-        onSuccess();
-        setLoading(false);
-        return;
-      }
-      
-      // Production flow
       const phoneAuthCredential = PhoneAuthProvider.credential(
         verificationId, 
         verificationCode
@@ -200,22 +264,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       setLoading(true);
       setError(null);
       
-      // For development mode
-      if (devMode) {
-        console.log('Development mode: Simulating MFA disabling');
-        // Wait a bit to simulate processing
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setHasMFA(false);
-        setEnrolledFactors([]);
-        setOpenDialog(false);
-        
-        // Call onSuccess with no arguments
-        onSuccess();
-        setLoading(false);
-        return;
-      }
-      
-      // Production flow
       for (const factor of enrolledFactors) {
         await unenrollMFA(user, factor);
       }
@@ -232,11 +280,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  // Toggle dev mode (for testing purposes)
-  const toggleDevMode = () => {
-    setDevMode(!devMode);
   };
 
   if (loading && !hasMFA) {
@@ -321,23 +364,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         Enable Two-Factor Authentication
       </Typography>
       
-      {/* Development mode indicator */}
-      {isDevelopment && (
-        <Box sx={{ mb: 2 }}>
-          <Alert severity={devMode ? "warning" : "info"}>
-            {devMode ? "Development Mode: No actual verification will be performed" : "Production Mode: Real verification will be performed"}
-          </Alert>
-          <Button 
-            size="small" 
-            variant="outlined" 
-            onClick={toggleDevMode} 
-            sx={{ mt: 1 }}
-          >
-            {devMode ? "Switch to Production Mode" : "Switch to Development Mode"}
-          </Button>
-        </Box>
-      )}
-      
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         <Step>
           <StepLabel>Phone Number</StepLabel>
@@ -370,8 +396,11 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             disabled={loading}
           />
           
-          {/* This container is needed for reCAPTCHA - leave it even in dev mode */}
-          <Box id="recaptcha-container" sx={{ mb: 2, mt: 2 }}></Box>
+          {/* reCAPTCHA container - must be persistent in the DOM */}
+          <div 
+            id="recaptcha-container" 
+            style={{ position: 'fixed', bottom: '0', left: '-10000px', visibility: 'hidden' }}
+          ></div>
           
           <Button 
             variant="contained" 
@@ -387,7 +416,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         <>
           <Typography variant="body1" sx={{ mb: 2 }}>
             Enter the 6-digit verification code sent to your phone.
-            {devMode && " (In development mode, any 6-digit code will work)"}
           </Typography>
           
           <TextField

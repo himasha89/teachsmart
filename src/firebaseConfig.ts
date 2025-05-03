@@ -18,7 +18,8 @@ const firebaseConfig = {
   storageBucket: "teachsmart-62854.firebasestorage.app",
   messagingSenderId: "885246331207",
   appId: "1:885246331207:web:2a52cd7e50e54d161ea462",
-  measurementId: "G-JNSS02GHVH"
+  measurementId: "G-JNSS02GHVH",
+  recaptchaKey: "6LeOxywrAAAAAACn-0YKinJbHSqorOI_991mnOhxr"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
