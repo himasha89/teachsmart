@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   MultiFactorResolver,
-  RecaptchaVerifier
+  RecaptchaVerifier,
+  getAuth
 } from 'firebase/auth';
 import { 
   Box, 
@@ -16,8 +17,9 @@ import {
   startMFASignIn,
   completeMFASignIn,
   cleanupRecaptchaVerifier,
-  createRecaptchaVerifier
-} from '../mfa/firebase-mfa';
+  createFreshRecaptchaContainer,
+  createUniqueContainerId
+} from '../mfa/firebase-signin-mfa';
 
 interface MFASignInProps {
   resolver: MultiFactorResolver;
@@ -36,6 +38,7 @@ const MFASignIn: React.FC<MFASignInProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState<boolean>(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const containerIdRef = useRef<string>(createUniqueContainerId());
   
   // Reference to track if component is mounted
   const isMountedRef = useRef(true);
@@ -59,20 +62,75 @@ const MFASignIn: React.FC<MFASignInProps> = ({
     };
   }, []);
 
+  // Reset reCAPTCHA and create fresh environment for verification
+  const resetRecaptchaEnvironment = async () => {
+    // Clean up any existing verifier
+    if (recaptchaVerifierRef.current) {
+      cleanupRecaptchaVerifier(recaptchaVerifierRef.current);
+      recaptchaVerifierRef.current = null;
+    }
+    
+    // Generate a new container ID
+    containerIdRef.current = createUniqueContainerId();
+    
+    // Create a fresh container
+    createFreshRecaptchaContainer(containerIdRef.current);
+    
+    // Short delay to ensure cleanup is complete
+    await new Promise(resolve => setTimeout(resolve, 300));
+  };
+
   const initializeVerification = async () => {
     try {
       setLoading(true);
       setError(null);
       
+      // Reset reCAPTCHA environment
+      await resetRecaptchaEnvironment();
+      
       // Create a fresh reCAPTCHA verifier
-      recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container');
-      
-      // Start MFA sign-in process
-      const vId = await startMFASignIn(resolver, recaptchaVerifierRef.current);
-      
-      if (isMountedRef.current) {
-        setVerificationId(vId);
-        setVerificationSent(true);
+      try {
+        // Get the Firebase auth instance
+        const auth = getAuth();
+        
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          containerIdRef.current,
+          { 
+            size: 'invisible',
+            callback: () => {
+              console.log('reCAPTCHA verified successfully');
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA challenge expired');
+            }
+          }
+        );
+        
+        // Start MFA sign-in process
+        const vId = await startMFASignIn(resolver, recaptchaVerifierRef.current);
+        
+        if (isMountedRef.current) {
+          setVerificationId(vId);
+          setVerificationSent(true);
+        }
+      } catch (verifyError: any) {
+        console.error('Error initializing verification:', verifyError);
+        
+        if (verifyError.message && verifyError.message.includes('has already been rendered')) {
+          // Handle reCAPTCHA specific errors - try again with a complete reset
+          await resetRecaptchaEnvironment();
+          
+          if (isMountedRef.current) {
+            setError('Security verification error. Please try again later.');
+            onError(verifyError);
+          }
+        } else {
+          if (isMountedRef.current) {
+            setError(verifyError.message || 'Failed to initialize verification process.');
+            onError(verifyError);
+          }
+        }
       }
     } catch (err: any) {
       console.error('Error starting MFA verification:', err);
@@ -125,12 +183,10 @@ const MFASignIn: React.FC<MFASignInProps> = ({
 
   const handleResendCode = async () => {
     setVerificationCode('');
+    setVerificationSent(false);
     
-    // Clean up existing reCAPTCHA
-    if (recaptchaVerifierRef.current) {
-      cleanupRecaptchaVerifier(recaptchaVerifierRef.current);
-      recaptchaVerifierRef.current = null;
-    }
+    // Reset reCAPTCHA environment completely
+    await resetRecaptchaEnvironment();
     
     // Reinitialize verification
     initializeVerification();
@@ -163,9 +219,6 @@ const MFASignIn: React.FC<MFASignInProps> = ({
           {error}
         </Alert>
       )}
-
-      {/* Hidden container for reCAPTCHA */}
-      <Box id="recaptcha-container" sx={{ height: 0, overflow: 'hidden' }}></Box>
       
       <TextField
         label="Verification Code"
@@ -198,6 +251,9 @@ const MFASignIn: React.FC<MFASignInProps> = ({
       >
         Resend Code
       </Button>
+      
+      {/* Hidden container for reCAPTCHA that will not be used directly */}
+      <div id={containerIdRef.current} style={{ display: 'none' }}></div>
     </Paper>
   );
 };
