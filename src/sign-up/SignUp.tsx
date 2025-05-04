@@ -246,10 +246,6 @@ const SignUp: React.FC<SignUpProps> = ({
                 }}
               />
             </FormControl>
-            <FormControlLabel
-              control={<Checkbox value="allowExtraEmails" color="primary" disabled={isLoading} />}
-              label="I want to receive updates via email."
-            />
             <Button 
               type="submit" 
               fullWidth 
@@ -282,29 +278,6 @@ const SignUp: React.FC<SignUpProps> = ({
                 Sign in
               </Link>
             </Typography>
-          </Box>
-          <Divider>
-            <Typography sx={{ color: 'text.secondary' }}>or</Typography>
-          </Divider>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert('Sign up with Google')}
-              startIcon={<GoogleIcon />}
-              disabled={isLoading}
-            >
-              Sign up with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert('Sign up with Facebook')}
-              startIcon={<FacebookIcon />}
-              disabled={isLoading}
-            >
-              Sign up with Facebook
-            </Button>
           </Box>
         </Card>
       </SignUpContainer>
