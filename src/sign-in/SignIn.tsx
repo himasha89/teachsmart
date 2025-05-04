@@ -22,6 +22,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Link from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -53,6 +54,15 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
     backgroundImage:
       'radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))',
     backgroundRepeat: 'no-repeat',
+  },
+}));
+
+const SignUpButton = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  backgroundColor: theme.palette.success.main,
+  color: theme.palette.common.white,
+  '&:hover': {
+    backgroundColor: theme.palette.success.dark,
   },
 }));
 
@@ -245,7 +255,28 @@ const SignIn: React.FC<SignInProps> = ({
               )}
             </Button>
           </Box>
-          <Divider />
+          
+          <Divider sx={{ my: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              New here?
+            </Typography>
+          </Divider>
+          
+          {/* New Sign Up Button Section */}
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ mb: 1 }}>
+              Don't have an account yet?
+            </Typography>
+            <SignUpButton
+              fullWidth
+              variant="contained"
+              href="/signup"
+              startIcon={<PersonAddIcon />}
+              disabled={isLoading}
+            >
+              Create an Account
+            </SignUpButton>
+          </Box>
         </Card>
       </SignInContainer>
     </Box>

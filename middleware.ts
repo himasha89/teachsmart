@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Define public paths that don't require authentication
-  const isPublicPath = path === '/signin';
+  const isPublicPath = path === '/signin' || path === '/signup';
 
   // Get the token from the cookies
   const token = request.cookies.get('user-token')?.value || '';
@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (token && isPublicPath) {
-    // Redirect to home page if trying to access signin page with token
+    // Redirect to home page if trying to access signin or signup page with token
     return NextResponse.redirect(new URL('/dashboard/home', request.url));
   }
 
@@ -30,6 +30,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
-    '/signin'
+    '/signin',
+    '/signup'
   ],
 };

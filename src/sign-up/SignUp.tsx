@@ -12,10 +12,15 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { styled } from '@mui/material/styles';
-import AppTheme from '../shared-theme/AppTheme';
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from './CustomIcons';
-import ColorModeSelect from '../shared-theme/ColorModeSelect';
+import { GoogleIcon, FacebookIcon } from './CustomIcons';
+import { useEffect, useState } from 'react';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -30,15 +35,14 @@ const Card = styled(MuiCard)(({ theme }) => ({
   [theme.breakpoints.up('sm')]: {
     width: '450px',
   },
-  ...theme.applyStyles('dark', {
+  ...theme.applyStyles?.('dark', {
     boxShadow:
       'hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px',
   }),
 }));
 
 const SignUpContainer = styled(Stack)(({ theme }) => ({
-  height: 'calc((1 - var(--template-frame-height, 0)) * 100dvh)',
-  minHeight: '100%',
+  minHeight: '100dvh',
   padding: theme.spacing(2),
   [theme.breakpoints.up('sm')]: {
     padding: theme.spacing(4),
@@ -52,7 +56,7 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
     backgroundImage:
       'radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))',
     backgroundRepeat: 'no-repeat',
-    ...theme.applyStyles('dark', {
+    ...theme.applyStyles?.('dark', {
       backgroundImage:
         'radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))',
     }),
@@ -63,144 +67,220 @@ interface SignUpProps {
   onSignup: (e: React.FormEvent<HTMLFormElement>) => void;
   setEmail: React.Dispatch<React.SetStateAction<string>>;
   setPassword: React.Dispatch<React.SetStateAction<string>>;
+  setFullName: React.Dispatch<React.SetStateAction<string>>;
   email: string;
   password: string;
+  fullName: string;
+  error?: { message: string; code?: string } | null;
+  isLoading?: boolean;
 }
 
-const SignUp: React.FC<SignUpProps> = ({ onSignup, setEmail, setPassword, email, password }) => {
-  const [emailError, setEmailError] = React.useState(false);
-  const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
-  const [passwordError, setPasswordError] = React.useState(false);
-  const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
-  const [nameError, setNameError] = React.useState(false);
-  const [nameErrorMessage, setNameErrorMessage] = React.useState('');
+const SignUp: React.FC<SignUpProps> = ({
+  onSignup,
+  setEmail,
+  setPassword,
+  setFullName,
+  email,
+  password,
+  fullName,
+  error,
+  isLoading = false
+}) => {
+  const [isMounted, setIsMounted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({
+    email: false,
+    password: false,
+    fullName: false
+  });
 
-  const validateInputs = () => {
-    let isValid = true;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-    if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setEmailError(true);
-      setEmailErrorMessage('Please enter a valid email address.');
-      isValid = false;
-    } else {
-      setEmailError(false);
-      setEmailErrorMessage('');
-    }
-
-    if (!password || password.length < 6) {
-      setPasswordError(true);
-      setPasswordErrorMessage('Password must be at least 6 characters long.');
-      isValid = false;
-    } else {
-      setPasswordError(false);
-      setPasswordErrorMessage('');
-    }
-
-    if (!email || email.length < 1) {
-      setNameError(true);
-      setNameErrorMessage('Name is required.');
-      isValid = false;
-    } else {
-      setNameError(false);
-      setNameErrorMessage('');
-    }
-
-    return isValid;
+  const handleBlur = (field: 'email' | 'password' | 'fullName') => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
   };
 
+  const getFieldError = (field: 'email' | 'password' | 'fullName'): string => {
+    if (!touchedFields[field]) return '';
+    
+    if (field === 'email') {
+      if (!email) return 'Email is required';
+      if (!/\S+@\S+\.\S+/.test(email)) return 'Please enter a valid email';
+    }
+    
+    if (field === 'password') {
+      if (!password) return 'Password is required';
+      if (password.length < 6) return 'Password must be at least 6 characters';
+    }
+    
+    if (field === 'fullName') {
+      if (!fullName) return 'Full name is required';
+    }
+    
+    return '';
+  };
+
+  if (!isMounted) {
+    return null;
+  }
+
   return (
-    <AppTheme>
+    <Box component="main">
       <CssBaseline enableColorScheme />
-      <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
-      <SignUpContainer direction="column" justifyContent="space-between">
+      <SignUpContainer direction="column" justifyContent="center">
         <Card variant="outlined">
-          <SitemarkIcon />
+          <Box 
+            sx={{ 
+              textAlign: 'center', 
+              mb: 2,
+              display: 'flex',
+              justifyContent: 'center'
+            }}
+          >
+            <img 
+              src="/icon.png" 
+              alt="Logo" 
+              style={{
+                height: '100px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
+          </Box>
           <Typography
             component="h1"
             variant="h4"
             sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
           >
-            Sign up
+            Create Account
           </Typography>
+          
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ width: '100%' }}
+              onClose={() => setTouchedFields({ email: false, password: false, fullName: false })}
+            >
+              {error.message}
+            </Alert>
+          )}
+
           <Box
             component="form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (validateInputs()) onSignup(e);
+            onSubmit={onSignup}
+            noValidate
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              width: '100%',
+              gap: 2,
             }}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
             <FormControl>
-              <FormLabel htmlFor="name">Full name</FormLabel>
+              <FormLabel htmlFor="fullName">Full name</FormLabel>
               <TextField
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                onBlur={() => handleBlur('fullName')}
+                placeholder="John Doe"
                 autoComplete="name"
-                name="name"
                 required
                 fullWidth
-                id="name"
-                placeholder="Jon Snow"
-                error={nameError}
-                helperText={nameErrorMessage}
-                color={nameError ? 'error' : 'primary'}
+                variant="outlined"
+                disabled={isLoading}
+                error={Boolean(getFieldError('fullName'))}
+                helperText={getFieldError('fullName')}
               />
             </FormControl>
             <FormControl>
               <FormLabel htmlFor="email">Email</FormLabel>
               <TextField
-                required
-                fullWidth
                 id="email"
-                placeholder="your@email.com"
-                name="email"
-                autoComplete="email"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => handleBlur('email')}
+                placeholder="your@email.com"
+                autoComplete="email"
+                required
+                fullWidth
                 variant="outlined"
-                error={emailError}
-                helperText={emailErrorMessage}
-                color={emailError ? 'error' : 'primary'}
+                disabled={isLoading}
+                error={Boolean(getFieldError('email'))}
+                helperText={getFieldError('email')}
               />
             </FormControl>
             <FormControl>
               <FormLabel htmlFor="password">Password</FormLabel>
               <TextField
-                required
-                fullWidth
-                name="password"
-                placeholder="••••••"
-                type="password"
                 id="password"
-                autoComplete="new-password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => handleBlur('password')}
+                placeholder="••••••"
+                autoComplete="new-password"
+                required
+                fullWidth
                 variant="outlined"
-                error={passwordError}
-                helperText={passwordErrorMessage}
-                color={passwordError ? 'error' : 'primary'}
+                disabled={isLoading}
+                error={Boolean(getFieldError('password'))}
+                helperText={getFieldError('password')}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </FormControl>
             <FormControlLabel
-              control={<Checkbox value="allowExtraEmails" color="primary" />}
+              control={<Checkbox value="allowExtraEmails" color="primary" disabled={isLoading} />}
               label="I want to receive updates via email."
             />
-            <Button
-              type="submit"
-              fullWidth
+            <Button 
+              type="submit" 
+              fullWidth 
               variant="contained"
+              disabled={
+                isLoading || 
+                Boolean(getFieldError('email')) || 
+                Boolean(getFieldError('password')) ||
+                Boolean(getFieldError('fullName'))
+              }
             >
-              Sign up
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Sign up'
+              )}
             </Button>
             <Typography sx={{ textAlign: 'center' }}>
               Already have an account?{' '}
-              <span>
-                <Link
-                  href="/signin"
-                  variant="body2"
-                  sx={{ alignSelf: 'center' }}
-                >
-                  Sign in
-                </Link>
-              </span>
+              <Link
+                href="/signin"
+                variant="body2"
+                sx={{ 
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                Sign in
+              </Link>
             </Typography>
           </Box>
           <Divider>
@@ -212,6 +292,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignup, setEmail, setPassword, email,
               variant="outlined"
               onClick={() => alert('Sign up with Google')}
               startIcon={<GoogleIcon />}
+              disabled={isLoading}
             >
               Sign up with Google
             </Button>
@@ -220,13 +301,14 @@ const SignUp: React.FC<SignUpProps> = ({ onSignup, setEmail, setPassword, email,
               variant="outlined"
               onClick={() => alert('Sign up with Facebook')}
               startIcon={<FacebookIcon />}
+              disabled={isLoading}
             >
               Sign up with Facebook
             </Button>
           </Box>
         </Card>
       </SignUpContainer>
-    </AppTheme>
+    </Box>
   );
 };
 
