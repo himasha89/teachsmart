@@ -112,8 +112,16 @@ const SignIn: React.FC<SignInProps> = ({
 
   const handleForgotPassword = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Stop event propagation
     if (onForgotPassword) {
       onForgotPassword(email);
+    }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!isLoading && !getFieldError('email') && !getFieldError('password')) {
+      onSignin(e);
     }
   };
 
@@ -164,7 +172,7 @@ const SignIn: React.FC<SignInProps> = ({
 
           <Box
             component="form"
-            onSubmit={onSignin}
+            onSubmit={handleFormSubmit}
             noValidate
             sx={{
               display: 'flex',
@@ -194,12 +202,14 @@ const SignIn: React.FC<SignInProps> = ({
             <FormControl>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <FormLabel htmlFor="password">Password</FormLabel>
+                {/* Changed to a div to prevent form submission */}
                 <Link
-                  component="button"
+                  component="span"
                   variant="body2"
                   onClick={handleForgotPassword}
                   sx={{ 
                     textDecoration: 'none',
+                    cursor: 'pointer',
                     '&:hover': {
                       textDecoration: 'underline'
                     }
@@ -230,6 +240,7 @@ const SignIn: React.FC<SignInProps> = ({
                         onClick={() => setShowPassword(!showPassword)}
                         onMouseDown={(e) => e.preventDefault()}
                         edge="end"
+                        type="button" // Explicitly set to button type
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
