@@ -19,9 +19,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { styled } from '@mui/material/styles';
+import { GoogleIcon, FacebookIcon } from './CustomIcons';
 import { useEffect, useState } from 'react';
-import SocialAuth from './SocialAuth'; // Import the SocialAuth component
-import { GoogleIcon, FacebookIcon } from './CustomIcons'; // Import the custom icons from your existing file
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -74,9 +73,6 @@ interface SignUpProps {
   fullName: string;
   error?: { message: string; code?: string } | null;
   isLoading?: boolean;
-  onSocialSignup?: (user: any) => void; // Add prop for social sign-up success handler
-  setError?: React.Dispatch<React.SetStateAction<{ message: string; code?: string } | null>>;
-  setIsLoading?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SignUp: React.FC<SignUpProps> = ({
@@ -88,10 +84,7 @@ const SignUp: React.FC<SignUpProps> = ({
   password,
   fullName,
   error,
-  isLoading = false,
-  onSocialSignup,
-  setError: propSetError,
-  setIsLoading: propSetIsLoading
+  isLoading = false
 }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -100,19 +93,6 @@ const SignUp: React.FC<SignUpProps> = ({
     password: false,
     fullName: false
   });
-
-  // Local state handlers if props not provided
-  const handleSetError = (err: { code?: string; message: string } | null) => {
-    if (propSetError) {
-      propSetError(err);
-    }
-  };
-
-  const handleSetIsLoading = (loading: boolean) => {
-    if (propSetIsLoading) {
-      propSetIsLoading(loading);
-    }
-  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -306,40 +286,26 @@ const SignUp: React.FC<SignUpProps> = ({
           <Divider>
             <Typography sx={{ color: 'text.secondary' }}>or</Typography>
           </Divider>
-          
-          {/* Replace the button section with the SocialAuth component */}
-          {onSocialSignup && (
-            <SocialAuth
-              onSuccess={onSocialSignup}
-              setError={handleSetError}
-              isLoading={isLoading}
-              setIsLoading={handleSetIsLoading}
-            />
-          )}
-          
-          {/* Fallback if onSocialSignup is not provided - using your existing icons */}
-          {!onSocialSignup && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={() => alert('Sign up with Google')}
-                startIcon={<GoogleIcon />}
-                disabled={isLoading}
-              >
-                Sign up with Google
-              </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={() => alert('Sign up with Facebook')}
-                startIcon={<FacebookIcon />}
-                disabled={isLoading}
-              >
-                Sign up with Facebook
-              </Button>
-            </Box>
-          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => alert('Sign up with Google')}
+              startIcon={<GoogleIcon />}
+              disabled={isLoading}
+            >
+              Sign up with Google
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => alert('Sign up with Facebook')}
+              startIcon={<FacebookIcon />}
+              disabled={isLoading}
+            >
+              Sign up with Facebook
+            </Button>
+          </Box>
         </Card>
       </SignUpContainer>
     </Box>

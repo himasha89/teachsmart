@@ -74,19 +74,6 @@ export default function SignUpPage() {
     }
   };
 
-  // Handler for social authentication success
-  const handleSocialSignup = async (user: User) => {
-    setCurrentUser(user);
-    
-    // If email is already verified (common with Google/Facebook auth), skip to MFA step
-    if (user.emailVerified) {
-      setActiveStep(2);
-    } else {
-      // Otherwise, go to email verification step
-      setActiveStep(1);
-    }
-  };
-
   const handleEmailVerification = async () => {
     setIsLoading(true);
     try {
@@ -157,9 +144,6 @@ export default function SignUpPage() {
             fullName={fullName}
             error={error}
             isLoading={isLoading}
-            onSocialSignup={handleSocialSignup}
-            setError={setError}
-            setIsLoading={setIsLoading}
           />
         );
       case 1:
@@ -179,7 +163,7 @@ export default function SignUpPage() {
             </Typography>
             
             <Alert severity="info" sx={{ mb: 3 }}>
-              A verification email has been sent to <strong>{currentUser?.email}</strong>
+              A verification email has been sent to <strong>{email}</strong>
             </Alert>
             
             {error && (
