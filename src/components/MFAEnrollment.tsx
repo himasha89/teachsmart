@@ -49,6 +49,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [enrolledFactors, setEnrolledFactors] = useState<any[]>([]);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaRenderedRef = useRef<boolean>(false);
   
   // Reference to track if component is mounted
   const isMountedRef = useRef(true);
@@ -152,6 +153,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       container.style.width = '0px';
       container.style.height = '0px';
       container.style.overflow = 'hidden';
+      container.style.visibility = 'hidden';
       document.body.appendChild(container);
     }
   };
@@ -160,6 +162,18 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     if (recaptchaVerifierRef.current) {
       try {
         recaptchaVerifierRef.current.clear();
+        console.log('reCAPTCHA verifier cleared successfully');
+        
+        // Additional cleanup for any leftover reCAPTCHA elements
+        const recaptchaElements = document.querySelectorAll('.grecaptcha-badge');
+        recaptchaElements.forEach(element => {
+          if (element.parentNode) {
+            element.parentNode.removeChild(element);
+          }
+        });
+        
+        // Reset our tracking flag
+        recaptchaRenderedRef.current = false;
       } catch (e) {
         console.error('Error clearing reCAPTCHA:', e);
       }
@@ -219,8 +233,11 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       // PRODUCTION FLOW WITH ERROR HANDLING
       const auth = getAuth();
       
-      // Clean up any existing verifier
-      cleanupRecaptchaVerifier();
+      // Clean up any existing verifier completely
+      await cleanupRecaptchaVerifier();
+      
+      // Add a small delay to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Get a stable container that won't be removed 
       const recaptchaContainer = document.getElementById('global-recaptcha-container');
@@ -232,8 +249,22 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
       recaptchaVerifierRef.current = new RecaptchaVerifier(
         auth,
         recaptchaContainer,
-        { size: 'invisible' }
+        { 
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA verified');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            if (isMountedRef.current) {
+              cleanupRecaptchaVerifier();
+            }
+          }
+        }
       );
+      
+      // Track that we're rendering
+      recaptchaRenderedRef.current = true;
       
       // Render the verifier before using it
       await recaptchaVerifierRef.current.render();
@@ -271,6 +302,11 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
           setNeedsEmailVerification(true);
         } else if (verifyError.message && verifyError.message.includes('client element has been removed')) {
           setError('reCAPTCHA element was removed. Please try again.');
+        } else if (verifyError.message && verifyError.message.includes('reCAPTCHA has already been rendered')) {
+          // This is the error we're trying to fix
+          console.log('Attempting to recover from reCAPTCHA already rendered error');
+          await cleanupRecaptchaVerifier();
+          setError('Please try again. We had an issue with the security verification.');
         } else {
           setError(verifyError.message || 'Failed to verify phone number. Please try again.');
         }
@@ -293,6 +329,10 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         // Email verification required
         setNeedsEmailVerification(true);
         return; // Return early to prevent showing error message
+      } else if (err.message && err.message.includes('reCAPTCHA has already been rendered')) {
+        // Special handling for this specific error
+        await cleanupRecaptchaVerifier();
+        errorMessage = 'Please try again. We had an issue with the security verification.';
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -380,6 +420,16 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         setLoading(false);
       }
     }
+  };
+
+  // Handle resend code
+  const handleResendCode = async () => {
+    // Reset verification code
+    setVerificationCode('');
+    // Go back to phone number step
+    setActiveStep(0);
+    // And then trigger the send code flow
+    await sendVerificationCode();
   };
 
   if (loading && !hasMFA && !needsEmailVerification) {
@@ -683,13 +733,16 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             variant="text"
             fullWidth
             sx={{ mt: 2 }}
-            onClick={sendVerificationCode}
+            onClick={handleResendCode}
             disabled={loading}
           >
             Resend Code
           </Button>
         </>
       )}
+      
+      {/* Hidden container for reCAPTCHA */}
+      <div id="recaptcha-container" style={{ display: 'none' }}></div>
     </Paper>
   );
 };
