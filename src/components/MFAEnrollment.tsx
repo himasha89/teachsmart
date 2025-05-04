@@ -19,8 +19,7 @@ import {
   Step,
   Stepper,
   StepLabel,
-  Dialog,
-  Link
+  Dialog
 } from '@mui/material';
 import { 
   isMFAEnabled,
@@ -49,7 +48,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [enrolledFactors, setEnrolledFactors] = useState<any[]>([]);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  const recaptchaRenderedRef = useRef<boolean>(false);
   
   // Reference to track if component is mounted
   const isMountedRef = useRef(true);
@@ -63,9 +61,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     
     // Check if email is verified
     checkEmailVerification();
-    
-    // Create a permanent reCAPTCHA container if it doesn't exist
-    ensureRecaptchaContainer();
     
     return () => {
       // Mark component as unmounted
@@ -140,45 +135,26 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     }
   };
 
-  // Ensure we have a stable reCAPTCHA container
-  const ensureRecaptchaContainer = () => {
-    // Check if we need to create a permanent container at the document level
-    if (!document.getElementById('global-recaptcha-container')) {
-      const container = document.createElement('div');
-      container.id = 'global-recaptcha-container';
-      // Position it somewhere it won't interfere with layout but still be in the DOM
-      container.style.position = 'fixed';
-      container.style.bottom = '0';
-      container.style.left = '0';
-      container.style.width = '0px';
-      container.style.height = '0px';
-      container.style.overflow = 'hidden';
-      container.style.visibility = 'hidden';
-      document.body.appendChild(container);
-    }
-  };
-
+  // Complete cleanup of reCAPTCHA
   const cleanupRecaptchaVerifier = () => {
     if (recaptchaVerifierRef.current) {
       try {
         recaptchaVerifierRef.current.clear();
-        console.log('reCAPTCHA verifier cleared successfully');
-        
-        // Additional cleanup for any leftover reCAPTCHA elements
-        const recaptchaElements = document.querySelectorAll('.grecaptcha-badge');
-        recaptchaElements.forEach(element => {
-          if (element.parentNode) {
-            element.parentNode.removeChild(element);
-          }
-        });
-        
-        // Reset our tracking flag
-        recaptchaRenderedRef.current = false;
+        console.log('reCAPTCHA verifier cleared');
       } catch (e) {
         console.error('Error clearing reCAPTCHA:', e);
       }
+      
       recaptchaVerifierRef.current = null;
     }
+    
+    // Remove any reCAPTCHA elements from the DOM
+    const recaptchaElements = document.querySelectorAll('.grecaptcha-badge, .grecaptcha-logo, iframe[src*="recaptcha"]');
+    recaptchaElements.forEach(element => {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    });
   };
 
   const checkMFAStatus = async () => {
@@ -206,6 +182,33 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
     }
   };
 
+  // Create a fresh reCAPTCHA container
+  const createFreshRecaptchaContainer = () => {
+    // Clean up any existing reCAPTCHA setup
+    cleanupRecaptchaVerifier();
+    
+    // Remove existing container if it exists
+    const existingContainer = document.getElementById('recaptcha-container');
+    if (existingContainer && existingContainer.parentNode) {
+      existingContainer.parentNode.removeChild(existingContainer);
+    }
+    
+    // Create a new container
+    const container = document.createElement('div');
+    container.id = 'recaptcha-container';
+    container.style.position = 'absolute';
+    container.style.bottom = '0';
+    container.style.left = '0';
+    container.style.width = '0';
+    container.style.height = '0';
+    container.style.overflow = 'hidden';
+    container.style.visibility = 'hidden';
+    document.body.appendChild(container);
+    
+    console.log('Created fresh reCAPTCHA container');
+    return container.id;
+  };
+
   const sendVerificationCode = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError('Please enter a valid phone number');
@@ -230,53 +233,37 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         return;
       }
       
-      // PRODUCTION FLOW WITH ERROR HANDLING
       const auth = getAuth();
       
-      // Clean up any existing verifier completely
-      await cleanupRecaptchaVerifier();
+      // Create a fresh container for reCAPTCHA
+      const containerId = createFreshRecaptchaContainer();
       
-      // Add a small delay to ensure cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Short delay to ensure DOM is updated
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Get a stable container that won't be removed 
-      const recaptchaContainer = document.getElementById('global-recaptcha-container');
-      if (!recaptchaContainer) {
-        throw new Error('reCAPTCHA container not found');
-      }
-      
-      // Create RecaptchaVerifier with minimal configuration
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
-        recaptchaContainer,
-        { 
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA verified');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-            if (isMountedRef.current) {
+      try {
+        // Create new reCAPTCHA verifier
+        recaptchaVerifierRef.current = new RecaptchaVerifier(
+          auth,
+          containerId,
+          { 
+            size: 'invisible',
+            callback: () => {
+              console.log('reCAPTCHA verified successfully');
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA challenge expired');
               cleanupRecaptchaVerifier();
             }
           }
-        }
-      );
-      
-      // Track that we're rendering
-      recaptchaRenderedRef.current = true;
-      
-      // Render the verifier before using it
-      await recaptchaVerifierRef.current.render();
-      
-      // Get the multi-factor session
-      const multiFactorUser = multiFactor(user);
-      const session = await multiFactorUser.getSession();
-      
-      // Send verification code using the standard Firebase approach
-      const phoneAuthProvider = new PhoneAuthProvider(auth);
-      
-      try {
+        );
+        
+        // Get the multi-factor session
+        const multiFactorUser = multiFactor(user);
+        const session = await multiFactorUser.getSession();
+        
+        // Send verification code
+        const phoneAuthProvider = new PhoneAuthProvider(auth);
         const vId = await phoneAuthProvider.verifyPhoneNumber(
           {
             phoneNumber: formattedPhoneNumber,
@@ -300,49 +287,29 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
         } else if (verifyError.code === 'auth/unverified-email') {
           // Email verification required
           setNeedsEmailVerification(true);
-        } else if (verifyError.message && verifyError.message.includes('client element has been removed')) {
-          setError('reCAPTCHA element was removed. Please try again.');
-        } else if (verifyError.message && verifyError.message.includes('reCAPTCHA has already been rendered')) {
-          // This is the error we're trying to fix
-          console.log('Attempting to recover from reCAPTCHA already rendered error');
-          await cleanupRecaptchaVerifier();
-          setError('Please try again. We had an issue with the security verification.');
+        } else if (verifyError.message && (
+          verifyError.message.includes('has already been rendered') || 
+          verifyError.message.includes('reCAPTCHA')
+        )) {
+          // Handle reCAPTCHA specific errors
+          if (isMountedRef.current) {
+            setError('Security verification error. Please try again.');
+            // Clean up completely
+            cleanupRecaptchaVerifier();
+          }
         } else {
-          setError(verifyError.message || 'Failed to verify phone number. Please try again.');
+          if (isMountedRef.current) {
+            setError(verifyError.message || 'Failed to verify phone number. Please try again.');
+          }
         }
       }
     } catch (err: any) {
       console.error('Error sending verification code:', err);
       
-      // Handle different error scenarios
-      let errorMessage = 'Failed to send verification code. Please try again.';
-      
-      if (err.code === 'auth/missing-recaptcha-token') {
-        errorMessage = 'reCAPTCHA verification failed. Please try on a registered domain.';
-      } else if (err.code === 'auth/argument-error') {
-        errorMessage = 'Domain not configured properly for reCAPTCHA. Check your Firebase settings.';
-      } else if (err.code === 'auth/operation-not-allowed') {
-        // This is a configuration error - SMS MFA not enabled in Firebase
-        setConfigError(true);
-        errorMessage = 'SMS-based MFA is not enabled in your Firebase project.';
-      } else if (err.code === 'auth/unverified-email') {
-        // Email verification required
-        setNeedsEmailVerification(true);
-        return; // Return early to prevent showing error message
-      } else if (err.message && err.message.includes('reCAPTCHA has already been rendered')) {
-        // Special handling for this specific error
-        await cleanupRecaptchaVerifier();
-        errorMessage = 'Please try again. We had an issue with the security verification.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      // Only update state if component is still mounted
       if (isMountedRef.current) {
-        setError(errorMessage);
+        setError(err.message || 'Failed to send verification code. Please try again.');
       }
     } finally {
-      // Only update state if component is still mounted
       if (isMountedRef.current) {
         setLoading(false);
       }
@@ -424,12 +391,19 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
 
   // Handle resend code
   const handleResendCode = async () => {
-    // Reset verification code
     setVerificationCode('');
-    // Go back to phone number step
     setActiveStep(0);
-    // And then trigger the send code flow
-    await sendVerificationCode();
+    
+    // Clean up completely first
+    cleanupRecaptchaVerifier();
+    
+    // Short delay to ensure cleanup is complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Then trigger send code with a fresh container
+    if (isMountedRef.current) {
+      sendVerificationCode();
+    }
   };
 
   if (loading && !hasMFA && !needsEmailVerification) {
@@ -740,9 +714,6 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
           </Button>
         </>
       )}
-      
-      {/* Hidden container for reCAPTCHA */}
-      <div id="recaptcha-container" style={{ display: 'none' }}></div>
     </Paper>
   );
 };
