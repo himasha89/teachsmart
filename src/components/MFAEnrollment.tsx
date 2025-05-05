@@ -659,7 +659,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
           />
           
           <Button 
-            variant="contained" 
+            variant="outlined" 
             fullWidth
             onClick={sendVerificationCode}
             disabled={loading || !phoneNumber}

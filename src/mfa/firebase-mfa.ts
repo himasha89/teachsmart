@@ -6,7 +6,6 @@ import {
   PhoneAuthProvider,
   RecaptchaVerifier,
   PhoneMultiFactorGenerator,
-  MultiFactorSession,
   MultiFactorResolver
 } from 'firebase/auth';
 import { getReCaptchaToken } from './recaptcha';
