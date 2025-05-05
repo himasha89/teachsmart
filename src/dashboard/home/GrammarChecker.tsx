@@ -28,6 +28,10 @@ import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import IconButton from '@mui/material/IconButton';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import Tooltip from '@mui/material/Tooltip';
+import Snackbar from '@mui/material/Snackbar';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Initialize PDF.js worker
@@ -71,6 +75,7 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
   const [extractingText, setExtractingText] = React.useState(false);
   const [grammarResults, setGrammarResults] = React.useState<GrammarCheckResponse | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [copySnackbarOpen, setCopySnackbarOpen] = React.useState(false);
 
   const extractTextFromPdf = async (file: File): Promise<string> => {
     try {
@@ -116,6 +121,20 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
     // Reset results when switching tabs
     setGrammarResults(null);
     setErrorMessage(null);
+  };
+
+  const handleCopyText = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setCopySnackbarOpen(true);
+      })
+      .catch((err) => {
+        console.error('Failed to copy text: ', err);
+      });
+  };
+
+  const handleCloseSnackbar = () => {
+    setCopySnackbarOpen(false);
   };
 
   const handleCheckGrammar = async () => {
@@ -196,9 +215,14 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
     }
   };
 
+  // Using the original renderHighlightedText function with a wrapper to prevent HTML nesting errors
   const renderHighlightedText = () => {
     if (!grammarResults || !grammarResults.issues.length) {
-      return <Typography variant="body1">{grammarResults?.correctedText || ''}</Typography>;
+      return (
+        <Box component="div" sx={{ fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' }}>
+          {grammarResults?.correctedText || ''}
+        </Box>
+      );
     }
 
     // Sort issues by start index to process them in order
@@ -291,7 +315,24 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
       );
     }
 
-    return <Typography variant="body1">{segments}</Typography>;
+    // Return segments wrapped in a Box instead of Typography to avoid nesting issues
+    return (
+      <Box 
+        component="div" 
+        sx={{ 
+          fontFamily: 'inherit', 
+          fontSize: 'inherit', 
+          lineHeight: 'inherit',
+          '& span': {
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            lineHeight: 'inherit',
+          }
+        }}
+      >
+        {segments}
+      </Box>
+    );
   };
 
   return (
@@ -491,8 +532,8 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
                     )}
                   </Box>
                   
-                  {/* Corrected Text */}
-                  <Box sx={{ mt: 2 }}>
+                  {/* Text with Corrections */}
+                  <Box>
                     <Typography variant="subtitle1" gutterBottom>
                       Text with Corrections
                     </Typography>
@@ -503,12 +544,69 @@ export default function GrammarChecker(props: { disableCustomTheme?: boolean }) 
                       {renderHighlightedText()}
                     </Paper>
                   </Box>
+                  
+                  {/* Refined Content Section with Copy Option */}
+                  <Box>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Refined Content
+                    </Typography>
+                    <Paper 
+                      variant="outlined" 
+                      sx={{ 
+                        p: 2, 
+                        bgcolor: alpha('#f0f8ff', 0.5), 
+                        borderRadius: 1,
+                        position: 'relative',
+                      }}
+                    >
+                      <Box 
+                        component="div" 
+                        sx={{ 
+                          fontFamily: '"Roboto","Helvetica","Arial",sans-serif', 
+                          fontSize: '1rem',
+                          lineHeight: 1.5,
+                          letterSpacing: '0.00938em',
+                          margin: 0,
+                          paddingRight: '32px' // Add padding for the copy button
+                        }}
+                      >
+                        {grammarResults.correctedText}
+                      </Box>
+                      <Tooltip title="Copy corrected text">
+                        <IconButton 
+                          onClick={() => handleCopyText(grammarResults.correctedText)}
+                          sx={{ 
+                            position: 'absolute', 
+                            top: 8, 
+                            right: 8,
+                            bgcolor: alpha('#ffffff', 0.7),
+                            '&:hover': {
+                              bgcolor: alpha('#ffffff', 0.9),
+                            }
+                          }}
+                          size="small"
+                          aria-label="copy refined content"
+                        >
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Paper>
+                  </Box>
                 </Stack>
               </Paper>
             )}
           </Stack>
         </Box>
       </Box>
+      
+      {/* Snackbar for copy notification */}
+      <Snackbar
+        open={copySnackbarOpen}
+        autoHideDuration={2000}
+        onClose={handleCloseSnackbar}
+        message="Copied to clipboard"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </AppTheme>
   );
 }
