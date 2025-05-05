@@ -443,7 +443,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             
             <Box sx={{ mt: 3, display: 'flex', gap: 2, flexDirection: 'column' }}>
               <Button 
-                variant="outlined" 
+                variant="contained" 
                 fullWidth
                 onClick={refreshUserEmailVerification}
                 disabled={loading}
@@ -469,7 +469,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             </Typography>
             
             <Button 
-              variant="outlined" 
+              variant="contained" 
               fullWidth
               onClick={sendVerificationEmail}
               disabled={loading}
@@ -538,7 +538,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
               <Button 
-                variant="outlined" 
+                variant="contained" 
                 color="error" 
                 onClick={disableMFA}
                 disabled={loading}
@@ -599,7 +599,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
           </Button>
           
           <Button 
-            variant="outlined"
+            variant="contained"
             onClick={() => {
               setConfigError(false);
               setError(null);

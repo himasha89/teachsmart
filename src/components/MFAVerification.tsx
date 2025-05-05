@@ -285,7 +285,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
               <Button 
-                variant="outlined" 
+                variant="contained" 
                 color="error" 
                 onClick={disableMFA}
                 disabled={loading}
@@ -366,7 +366,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
           <Box id="recaptcha-container" sx={{ mb: 2, mt: 2 }}></Box>
           
           <Button 
-            variant="outlined" 
+            variant="contained" 
             fullWidth
             onClick={sendVerificationCode}
             disabled={loading || !phoneNumber}
@@ -403,7 +403,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
               Back
             </Button>
             <Button 
-              variant="outlined" 
+              variant="contained" 
               onClick={verifyAndEnroll}
               disabled={loading || !verificationCode}
             >

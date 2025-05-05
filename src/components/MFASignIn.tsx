@@ -233,7 +233,7 @@ const MFASignIn: React.FC<MFASignInProps> = ({
       />
       
       <Button 
-        variant="outlined" 
+        variant="contained" 
         fullWidth
         onClick={verifyAndSignIn}
         disabled={loading || !verificationCode}
