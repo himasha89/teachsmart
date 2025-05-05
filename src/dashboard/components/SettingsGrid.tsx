@@ -18,54 +18,6 @@ import {
 
 const data: StatCardProps[] = [
   {
-    title: 'Profile Settings',
-    description: 'Manage your profile information, credentials, and preferences',
-    icon: <GiSettingsKnobs size={40} style={{ color: '#4361EE' }} />,
-    path: '/dashboard/settings/profile',
-  },
-  {
-    title: 'Interface Settings',
-    description: 'Customize theme, font size, and layout preferences',
-    icon: <GiToolbox size={40} style={{ color: '#4CC9F0' }} />,
-    path: '/dashboard/settings/interface',
-  },
-  {
-    title: 'Notification Center',
-    description: 'Configure email and real-time notification preferences',
-    icon: <GiSpeaker size={40} style={{ color: '#4895EF' }} />,
-    path: '/dashboard/settings/notifications',
-  },
-  {
-    title: 'Security & Privacy',
-    description: 'Manage authentication and data privacy settings',
-    icon: <GiPadlock size={40} style={{ color: '#F72585' }} />,
-    path: '/dashboard/settings/security',
-  },
-  {
-    title: 'Academic Preferences',
-    description: 'Set up lesson planning and assessment defaults',
-    icon: <GiGraduateCap size={40} style={{ color: '#7209B7' }} />,
-    path: '/dashboard/settings/academic',
-  },
-  {
-    title: 'Data Management',
-    description: 'Control data sync, backup, and storage options',
-    icon: <GiDatabase size={40} style={{ color: '#3A0CA3' }} />,
-    path: '/dashboard/settings/data',
-  },
-  {
-    title: 'AI Assistance Settings',
-    description: 'Configure TeachBot and document analysis preferences',
-    icon: <GiArtificialIntelligence size={40} style={{ color: '#B5179E' }} />,
-    path: '/dashboard/settings/ai',
-  },
-  {
-    title: 'System Settings',
-    description: 'Manage system performance and integration options',
-    icon: <GiCog size={40} style={{ color: '#480CA8' }} />,
-    path: '/dashboard/settings/system',
-  },
-  {
     title: 'Security & Privacy',
     description: 'Manage authentication and data privacy settings',
     icon: <GiPadlock size={40} style={{ color: '#F72585' }} />,

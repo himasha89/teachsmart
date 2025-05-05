@@ -40,31 +40,7 @@ const data: StatCardProps[] = [
     description: 'Check student writing for grammar and spelling errors in real-time.',
     icon: <GiSpellBook size={40} style={{ color: '#96CEB4' }} />,
     path: '/dashboard/home/grammar-checker',
-  },
-  {
-    title: 'Primary Source Recommendations',
-    description: 'Discover relevant primary sources for lesson themes.',
-    icon: <GiBookshelf size={40} style={{ color: '#FFBE0B' }} />,
-    path: '/dashboard/home',
-  },
-  {
-    title: 'Lesson Adaptations',
-    description: 'Tailor lesson plans to meet different student needs.',
-    icon: <GiSettingsKnobs size={40} style={{ color: '#FF006E' }} />,
-    path: '/dashboard/home',
-  },
-  {
-    title: 'Generate Comprehension Questions',
-    description: 'Generate questions based on primary sources for assessments.',
-    icon: <GiThink size={40} style={{ color: '#8338EC' }} />,
-    path: '/dashboard/home',
-  },
-  {
-    title: 'Performance Analytics',
-    description: 'Track student progress and generate comprehensive learning insights.',
-    icon: <GiChart size={40} style={{ color: '#3A86FF' }} />,
-    path: '/dashboard/home',
-}
+  }
 ];
 
 export default function MainGrid() {

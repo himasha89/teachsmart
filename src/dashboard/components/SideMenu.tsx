@@ -54,9 +54,9 @@ export default function SideMenu() {
 
   const menuItems = [
     { text: 'Home', icon: <HomeRoundedIcon />, path: '/dashboard/home' },
-    { text: 'Favourites', icon: <FavoriteRoundedIcon />, path: '/dashboard/favourites' },
-    { text: 'Teacher Tools', icon: <SchoolRoundedIcon />, path: '/dashboard/teachertools' },
-    { text: 'Classroom Tools', icon: <MenuBookRoundedIcon />, path: '/dashboard/classroomtools' },
+    // { text: 'Favourites', icon: <FavoriteRoundedIcon />, path: '/dashboard/favourites' },
+    // { text: 'Teacher Tools', icon: <SchoolRoundedIcon />, path: '/dashboard/teachertools' },
+    // { text: 'Classroom Tools', icon: <MenuBookRoundedIcon />, path: '/dashboard/classroomtools' },
     { text: 'Settings', icon: <SettingsRoundedIcon />, path: '/dashboard/settings' },
     { text: 'About', icon: <InfoRoundedIcon />, path: '/dashboard/about' }
   ];

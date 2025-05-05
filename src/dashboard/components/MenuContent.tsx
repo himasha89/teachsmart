@@ -22,9 +22,9 @@ import EditIcon from '@mui/icons-material/Edit';
 
 const mainListItems = [
   { text: 'Home', icon: <HomeRoundedIcon /> },
-  { text: 'Favourites', icon: <FavoriteIcon /> },
-  { text: 'Teacher Tools', icon: <EditIcon /> },
-  { text: 'Classroom Tools', icon: <SchoolIcon /> },
+  // { text: 'Favourites', icon: <FavoriteIcon /> },
+  // { text: 'Teacher Tools', icon: <EditIcon /> },
+  // { text: 'Classroom Tools', icon: <SchoolIcon /> },
 ];
 
 const secondaryListItems = [
