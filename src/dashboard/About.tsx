@@ -35,7 +35,7 @@ const features = [
   {
     icon: <MenuBookIcon sx={{ fontSize: 40, color: '#4CC9F0' }} />,
     title: "Lesson Planning",
-    description: "Create lesson plans around primary sources with AI support. Generate comprehensive plans with objectives, activities, and assessments."
+    description: "Create lesson plans with AI support. Generate comprehensive plans with objectives, activities, and assessments."
   },
   {
     icon: <DescriptionIcon sx={{ fontSize: 40, color: '#4895EF' }} />,

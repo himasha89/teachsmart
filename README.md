@@ -9,7 +9,7 @@ TeachSmart is an innovative educational platform that combines artificial intell
 ## Features
 
 ### Lesson Planning
-Create lesson plans around primary sources with AI support. Generate comprehensive plans with objectives, activities, and assessments.
+Create lesson plans with AI support. Generate comprehensive plans with objectives, activities, and assessments.
 
 ### Document Analysis
 Analyze historical documents with NLP for insights. Upload PDFs and text files to extract summaries and key concepts.
