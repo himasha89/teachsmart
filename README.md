@@ -99,14 +99,14 @@ TeachSmart uses Firebase Authentication with the following features:
 
 ## Features Implementation
 
-### TeachBot
-TeachBot provides an interactive chat interface where teachers can ask questions and get AI-generated responses. It connects to a backend service for processing queries.
-
 ### Lesson Planning
 The Lesson Planning tool helps teachers create structured lesson plans with learning objectives, activities, and assessment strategies. It uses AI to generate content based on the teacher's input.
 
 ### Document Analysis
 This tool allows teachers to upload PDF and text documents for analysis. It extracts text from documents and provides summaries using natural language processing.
+
+### TeachBot
+TeachBot provides an interactive chat interface where teachers can ask questions and get AI-generated responses. It connects to a backend service for processing queries.
 
 ### Grammar Checker
 The Grammar Checker analyzes student writing for grammar and spelling errors. It provides suggestions for improvements and calculates a writing quality score.
