@@ -40,7 +40,7 @@ Check student writing for grammar and spelling errors. The tool provides suggest
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/teachsmart.git
+   git clone https://github.com/himasha89/teachsmart.git
    cd teachsmart
    ```
 
