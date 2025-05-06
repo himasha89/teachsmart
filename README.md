@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TeachSmart
+
+![TeachSmart Logo](public/icon.png)
+
+## Overview
+
+TeachSmart is an AI-powered educational platform designed to enhance teaching experiences through intelligent tools for lesson planning, document analysis, and student engagement. Our application combines artificial intelligence with modern teaching methodologies to help educators create more effective learning environments.
+
+## Features
+
+- **AI-Powered Teaching Assistant**: Leveraging advanced NLP using spaCy and Hugging Face Transformers for intelligent content analysis and recommendations
+- **Comprehensive Lesson Planning**: Create and organize lesson plans with AI support, making curriculum development more efficient
+- **Interactive Document Analysis**: Advanced document analysis capabilities for educational materials with NLP insights
+- **Grammar Checker**: Check student writing for grammar and spelling errors in real-time
+- **TeachBot**: AI teaching assistant for immediate support and creative lesson ideas
+- **Multi-Factor Authentication**: Secure access with email verification and phone-based MFA
+- **Responsive Design**: Works seamlessly across desktop and mobile devices
+
+## Tech Stack
+
+- **Frontend**: Next.js, React, Material UI
+- **Authentication**: Firebase Authentication
+- **Backend**: Firebase Cloud Functions
+- **Database**: Firestore
+- **Deployment**: Vercel/Firebase Hosting
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js (v16 or later)
+- npm or yarn
+- Firebase account
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/teachsmart.git
+   cd teachsmart
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-## Learn More
+3. Set up your Firebase project:
+   - Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
+   - Enable Authentication (Email/Password and Phone)
+   - Set up Firestore database
+   - Set up Firebase Hosting
+   - Enable Firebase Functions
 
-To learn more about Next.js, take a look at the following resources:
+4. Configure environment variables:
+   Create a `.env.local` file in the root directory with the following variables:
+   ```
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_key
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Run the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+6. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-## Deploy on Vercel
+## Available Tools
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Lesson Planning Assistant
+Create comprehensive lesson plans with AI-generated content, learning objectives, assessment strategies, and more. Input your topic and grade level requirements, and receive a structured lesson plan tailored to your needs.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Document Analysis
+Upload and analyze educational documents to extract key insights, main themes, and important concepts. Great for historical texts and research materials.
+
+### Grammar Checker
+Check student writing for grammar, spelling, and style errors in real-time. Get suggestions for improvements and an overall writing quality score.
+
+### TeachBot
+Chat with an AI teaching assistant to get instant answers to teaching questions, creative lesson ideas, and support for classroom challenges.
+
+## Deployment
+
+### Firebase Deployment
+
+1. Build the application:
+   ```bash
+   npm run build
+   # or
+   yarn build
+   ```
+
+2. Deploy to Firebase:
+   ```bash
+   firebase deploy
+   ```
+
+### Vercel Deployment
+
+1. Connect your GitHub repository to Vercel
+2. Configure environment variables in Vercel project settings
+3. Deploy through the Vercel dashboard
+
+## Security Features
+
+TeachSmart implements several security features:
+- Email verification for new user accounts
+- Optional phone-based multi-factor authentication
+- Secure password reset functionality
+- Protected routes using Next.js middleware
