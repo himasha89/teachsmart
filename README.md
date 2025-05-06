@@ -4,25 +4,29 @@
 
 ## Overview
 
-TeachSmart is an AI-powered educational platform designed to enhance teaching experiences through intelligent tools for lesson planning, document analysis, and student engagement. Our application combines artificial intelligence with modern teaching methodologies to help educators create more effective learning environments.
+TeachSmart is an innovative educational platform that combines artificial intelligence with modern teaching methodologies. The platform is designed to enhance the teaching experience by providing smart tools for lesson planning, document analysis, and student engagement.
 
 ## Features
 
-- **AI-Powered Teaching Assistant**: Leveraging advanced NLP using spaCy and Hugging Face Transformers for intelligent content analysis and recommendations
-- **Comprehensive Lesson Planning**: Create and organize lesson plans with AI support, making curriculum development more efficient
-- **Interactive Document Analysis**: Advanced document analysis capabilities for educational materials with NLP insights
-- **Grammar Checker**: Check student writing for grammar and spelling errors in real-time
-- **TeachBot**: AI teaching assistant for immediate support and creative lesson ideas
-- **Multi-Factor Authentication**: Secure access with email verification and phone-based MFA
-- **Responsive Design**: Works seamlessly across desktop and mobile devices
+### Lesson Planning
+Create lesson plans around primary sources with AI support. Generate comprehensive plans with objectives, activities, and assessments.
+
+### Document Analysis
+Analyze historical documents with NLP for insights. Upload PDFs and text files to extract summaries and key concepts.
+
+### TeachBot
+Your AI teaching assistant. Ask questions, get lesson ideas, and receive instant support for all your teaching needs.
+
+### Grammar Checker
+Check student writing for grammar and spelling errors in real-time. Get improvement suggestions and writing quality scores.
 
 ## Tech Stack
 
 - **Frontend**: Next.js, React, Material UI
-- **Authentication**: Firebase Authentication
-- **Backend**: Firebase Cloud Functions
-- **Database**: Firestore
-- **Deployment**: Vercel/Firebase Hosting
+- **Authentication**: Firebase Authentication with multi-factor security
+- **Database**: Firebase Firestore
+- **PDF Processing**: PDF.js for document analysis
+- **Security**: Email verification and phone-based MFA
 
 ## Getting Started
 
@@ -51,20 +55,10 @@ TeachSmart is an AI-powered educational platform designed to enhance teaching ex
    - Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
    - Enable Authentication (Email/Password and Phone)
    - Set up Firestore database
-   - Set up Firebase Hosting
    - Enable Firebase Functions
 
 4. Configure environment variables:
-   Create a `.env.local` file in the root directory with the following variables:
-   ```
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_key
-   ```
+   Create a `.env.local` file in the root directory with your Firebase configuration.
 
 5. Run the development server:
    ```bash
@@ -75,19 +69,47 @@ TeachSmart is an AI-powered educational platform designed to enhance teaching ex
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-## Available Tools
+## Project Structure
 
-### Lesson Planning Assistant
-Create comprehensive lesson plans with AI-generated content, learning objectives, assessment strategies, and more. Input your topic and grade level requirements, and receive a structured lesson plan tailored to your needs.
+```
+src/
+├── app/             # Next.js app directory
+│   ├── components/  # Shared components
+│   ├── context/     # Context providers (Auth)
+│   ├── dashboard/   # Dashboard pages
+│   ├── layout.tsx   # Root layout
+│   └── page.tsx     # Home page
+├── dashboard/       # Dashboard components
+│   ├── components/  # Dashboard UI components
+│   ├── home/        # Feature implementations
+│   └── theme/       # Theme customizations
+├── mfa/             # Multi-factor authentication
+├── shared-theme/    # Theme providers
+├── sign-in/         # Authentication components
+└── sign-up/         # User registration components
+```
 
-### Document Analysis
-Upload and analyze educational documents to extract key insights, main themes, and important concepts. Great for historical texts and research materials.
+## Authentication
 
-### Grammar Checker
-Check student writing for grammar, spelling, and style errors in real-time. Get suggestions for improvements and an overall writing quality score.
+TeachSmart uses Firebase Authentication with the following features:
+- Email and password authentication
+- Email verification
+- Password reset functionality
+- Optional phone-based multi-factor authentication (MFA)
+
+## Features Implementation
 
 ### TeachBot
-Chat with an AI teaching assistant to get instant answers to teaching questions, creative lesson ideas, and support for classroom challenges.
+TeachBot provides an interactive chat interface where teachers can ask questions and get AI-generated responses. It connects to a backend service for processing queries.
+
+### Lesson Planning
+The Lesson Planning tool helps teachers create structured lesson plans with learning objectives, activities, and assessment strategies. It uses AI to generate content based on the teacher's input.
+
+### Document Analysis
+This tool allows teachers to upload PDF and text documents for analysis. It extracts text from documents and provides summaries using natural language processing.
+
+### Grammar Checker
+The Grammar Checker analyzes student writing for grammar and spelling errors. It provides suggestions for improvements and calculates a writing quality score.
 
 ## Deployment
 
@@ -105,16 +127,10 @@ Chat with an AI teaching assistant to get instant answers to teaching questions,
    firebase deploy
    ```
 
-### Vercel Deployment
+## Benefits for Educators
 
-1. Connect your GitHub repository to Vercel
-2. Configure environment variables in Vercel project settings
-3. Deploy through the Vercel dashboard
-
-## Security Features
-
-TeachSmart implements several security features:
-- Email verification for new user accounts
-- Optional phone-based multi-factor authentication
-- Secure password reset functionality
-- Protected routes using Next.js middleware
+TeachSmart helps educators:
+- Create comprehensive lesson plans in less time
+- Analyze historical documents and educational materials efficiently
+- Get instant teaching assistance through TeachBot
+- Improve student writing with detailed grammar feedback
