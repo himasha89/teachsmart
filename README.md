@@ -4,21 +4,21 @@
 
 ## Overview
 
-TeachSmart is an innovative educational platform that combines artificial intelligence with modern teaching methodologies. The platform is designed to enhance the teaching experience by providing smart tools for lesson planning, document analysis, and student engagement.
+TeachSmart is an innovative educational platform that combines artificial intelligence with modern teaching methodologies. The platform enhances the teaching experience by providing smart tools for lesson planning, document analysis, grammar checking, and AI-assisted teaching.
 
 ## Features
 
-### Lesson Planning
-Create lesson plans with AI support. Generate comprehensive plans with objectives, activities, and assessments.
+### Lesson Planning Assistant
+Create comprehensive lesson plans with AI support. Input your requirements, and TeachSmart will generate lesson plans with objectives, activities, assessments, and materials needed.
 
 ### Document Analysis
-Analyze historical documents with NLP for insights. Upload PDFs and text files to extract summaries and key concepts.
+Upload and analyze documents with natural language processing. The platform supports PDF and text files, extracting key concepts and generating summaries to help understand complex materials.
 
 ### TeachBot
-Your AI teaching assistant. Ask questions, get lesson ideas, and receive instant support for all your teaching needs.
+Get instant teaching support through an AI-powered chat interface. Ask questions about teaching strategies, lesson ideas, or educational concepts to receive real-time guidance.
 
 ### Grammar Checker
-Check student writing for grammar and spelling errors in real-time. Get improvement suggestions and writing quality scores.
+Check student writing for grammar and spelling errors. The tool provides suggestions for improvements, calculates writing quality scores, and highlights potential issues with explanations.
 
 ## Tech Stack
 
@@ -91,25 +91,51 @@ src/
 
 ## Authentication
 
-TeachSmart uses Firebase Authentication with the following features:
+TeachSmart implements robust Firebase Authentication with:
 - Email and password authentication
-- Email verification
-- Password reset functionality
-- Optional phone-based multi-factor authentication (MFA)
+- Email verification workflow
+- Secure password reset functionality
+- Phone-based multi-factor authentication (MFA)
 
 ## Features Implementation
 
-### Lesson Planning
-The Lesson Planning tool helps teachers create structured lesson plans with learning objectives, activities, and assessment strategies. It uses AI to generate content based on the teacher's input.
+### Lesson Planning Assistant
+The Lesson Planning tool helps teachers create structured lesson plans with learning objectives, activities, and assessment strategies. Enter your requirements, and the AI will generate tailored plans that include:
+- Learning objectives
+- Required materials
+- Structured activities
+- Assessment strategies
 
 ### Document Analysis
-This tool allows teachers to upload PDF and text documents for analysis. It extracts text from documents and provides summaries using natural language processing.
+This tool allows document analysis through NLP, with support for:
+- PDF file upload and text extraction
+- Text file processing
+- Summary generation
+- Key concept identification
+- Results display for easy review
 
 ### TeachBot
-TeachBot provides an interactive chat interface where teachers can ask questions and get AI-generated responses. It connects to a backend service for processing queries.
+TeachBot provides an interactive chat interface where teachers can:
+- Ask questions about teaching methodologies
+- Get assistance with lesson ideas
+- Receive support for classroom management
+- Access teaching resources and strategies
 
 ### Grammar Checker
-The Grammar Checker analyzes student writing for grammar and spelling errors. It provides suggestions for improvements and calculates a writing quality score.
+The Grammar Checker analyzes student writing with:
+- Grammar error detection
+- Spelling correction
+- Writing quality assessment
+- Improvement suggestions
+- Detailed explanations of issues found
+
+## Security Features
+
+TeachSmart prioritizes security with:
+- Email verification for all new accounts
+- Multi-factor authentication using phone verification
+- Secure password handling
+- Protected routes with authentication checks
 
 ## Deployment
 
@@ -131,6 +157,6 @@ The Grammar Checker analyzes student writing for grammar and spelling errors. It
 
 TeachSmart helps educators:
 - Create comprehensive lesson plans in less time
-- Analyze historical documents and educational materials efficiently
+- Analyze educational materials efficiently
 - Get instant teaching assistance through TeachBot
 - Improve student writing with detailed grammar feedback

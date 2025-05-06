@@ -8,9 +8,9 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import { Paper, Typography, Grid, Card, CardContent } from '@mui/material';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import DescriptionIcon from '@mui/icons-material/Description';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import SpellcheckIcon from '@mui/icons-material/Spellcheck';
 import AppNavbar from './components/AppNavbar';
 import Header from './components/Header';
@@ -30,27 +30,27 @@ const xThemeComponents = {
   ...treeViewCustomizations,
 };
 
-// Features based on actual codebase implementation
+// Features based on actual implementation
 const features = [
   {
     icon: <MenuBookIcon sx={{ fontSize: 40, color: '#4CC9F0' }} />,
-    title: "Lesson Planning",
-    description: "Create lesson plans with AI support. Generate comprehensive plans with objectives, activities, and assessments."
+    title: "Lesson Planning Assistant",
+    description: "Create comprehensive lesson plans with AI support. Input your requirements to generate structured plans with objectives, activities, and assessments."
   },
   {
     icon: <DescriptionIcon sx={{ fontSize: 40, color: '#4895EF' }} />,
     title: "Document Analysis",
-    description: "Analyze historical documents with NLP for insights. Upload PDFs and text files to extract summaries and key concepts."
+    description: "Upload PDF and text files for NLP analysis. Extract text, generate summaries, and identify key concepts to enhance understanding of educational materials."
   },
   {
     icon: <SmartToyIcon sx={{ fontSize: 40, color: '#4361EE' }} />,
     title: "TeachBot",
-    description: "Your AI teaching assistant. Ask questions, get lesson ideas, and receive instant support for all your teaching needs."
+    description: "Access an AI teaching assistant through an interactive chat interface. Ask questions about teaching methodologies and receive real-time guidance and support."
   },
   {
     icon: <SpellcheckIcon sx={{ fontSize: 40, color: '#F72585' }} />,
     title: "Grammar Checker",
-    description: "Check student writing for grammar and spelling errors in real-time. Get improvement suggestions and writing quality scores."
+    description: "Analyze student writing for grammar and spelling errors. Receive improvement suggestions, detailed explanations, and writing quality assessments."
   }
 ];
 
@@ -91,10 +91,10 @@ export default function About(props: { disableCustomTheme?: boolean }) {
                   POWERED BY AI, DRIVEN BY LEARNING
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2, color: '#666666' }}>
-                  TeachSmart is an innovative educational platform that combines artificial intelligence with modern teaching methodologies. Our platform is designed to enhance the teaching experience by providing smart tools for lesson planning, document analysis, and student engagement.
+                  TeachSmart is an innovative educational platform that combines artificial intelligence with modern teaching methodologies. Our platform is designed to enhance the teaching experience by providing smart tools for lesson planning, document analysis, grammar checking, and AI-assisted teaching support.
                 </Typography>
                 <Typography variant="body1" sx={{ color: '#666666' }}>
-                  Built with cutting-edge technologies including React.js for the frontend and Google Firebase for backend services, TeachSmart ensures a seamless, secure, and efficient experience for educators.
+                  Built with cutting-edge technologies including Next.js for the frontend and Firebase for authentication and database services, TeachSmart ensures a seamless, secure, and efficient experience for educators at all levels.
                 </Typography>
               </Paper>
 
@@ -136,28 +136,52 @@ export default function About(props: { disableCustomTheme?: boolean }) {
               </Grid>
 
               {/* Technology Stack */}
-              <Paper elevation={0} sx={{ p: 4, mt: 3, backgroundColor: 'transparent' }}>
+              <Paper elevation={0} sx={{ p: 4, mt: 4, backgroundColor: 'transparent' }}>
                 <Typography variant="h4" gutterBottom sx={{ color: '#1a237e' }}>
                   Our Technology
                 </Typography>
                 <Typography variant="body1" sx={{ color: '#666666', mb: 2 }}>
-                  TeachSmart is built on a robust technology stack that ensures reliability, scalability, and security:
+                  TeachSmart leverages modern technologies to deliver a robust, secure platform:
                 </Typography>
                 <Box component="ul" sx={{ color: '#666666', pl: 3 }}>
                   <Typography component="li" sx={{ mt: 1 }}>
-                    <strong>Frontend:</strong> Next.js, React, and Material UI
+                    <strong>Frontend:</strong> Next.js 15, React 18, and Material UI 6 for a responsive, accessible interface
                   </Typography>
                   <Typography component="li" sx={{ mt: 1 }}>
-                    <strong>Authentication:</strong> Firebase Authentication with multi-factor security
+                    <strong>Authentication:</strong> Firebase Authentication with email verification and phone-based MFA
                   </Typography>
                   <Typography component="li" sx={{ mt: 1 }}>
-                    <strong>Database:</strong> Firebase Firestore
+                    <strong>Database:</strong> Firebase Firestore for secure, scalable data storage
                   </Typography>
                   <Typography component="li" sx={{ mt: 1 }}>
-                    <strong>PDF Processing:</strong> PDF.js for document analysis
+                    <strong>PDF Processing:</strong> PDF.js for document text extraction and analysis
                   </Typography>
                   <Typography component="li" sx={{ mt: 1 }}>
-                    <strong>Security:</strong> Email verification and phone-based MFA
+                    <strong>AI Integration:</strong> Custom API endpoints for lesson planning, document analysis, and grammar checking
+                  </Typography>
+                </Box>
+              </Paper>
+
+              {/* Security Section */}
+              <Paper elevation={0} sx={{ p: 4, mt: 3, backgroundColor: 'transparent' }}>
+                <Typography variant="h4" gutterBottom sx={{ color: '#1a237e' }}>
+                  Security Features
+                </Typography>
+                <Typography variant="body1" sx={{ color: '#666666', mb: 2 }}>
+                  TeachSmart prioritizes user security through:
+                </Typography>
+                <Box component="ul" sx={{ color: '#666666', pl: 3 }}>
+                  <Typography component="li" sx={{ mt: 1 }}>
+                    Email verification for all new accounts
+                  </Typography>
+                  <Typography component="li" sx={{ mt: 1 }}>
+                    Optional phone-based multi-factor authentication
+                  </Typography>
+                  <Typography component="li" sx={{ mt: 1 }}>
+                    Secure password handling and reset procedures
+                  </Typography>
+                  <Typography component="li" sx={{ mt: 1 }}>
+                    Protected routes with authentication middleware
                   </Typography>
                 </Box>
               </Paper>
@@ -175,7 +199,7 @@ export default function About(props: { disableCustomTheme?: boolean }) {
                     Create comprehensive lesson plans in less time
                   </Typography>
                   <Typography component="li" sx={{ mt: 1 }}>
-                    Analyze historical documents and educational materials efficiently
+                    Analyze educational documents efficiently with NLP
                   </Typography>
                   <Typography component="li" sx={{ mt: 1 }}>
                     Get instant teaching assistance through TeachBot
@@ -192,7 +216,7 @@ export default function About(props: { disableCustomTheme?: boolean }) {
                   Get Started with TeachSmart
                 </Typography>
                 <Typography variant="body1" sx={{ color: '#666666' }}>
-                  TeachSmart is designed for educators. Our platform provides powerful, easy-to-use tools that help you focus on what matters most: inspiring and educating your students. Create an account today to experience the difference that intelligent teaching tools can make in your classroom.
+                  TeachSmart is designed for educators at all levels. Our platform provides powerful, user-friendly tools that help you focus on what matters most: inspiring and educating your students. Create an account today to experience the difference that AI-enhanced teaching tools can make in your classroom.
                 </Typography>
               </Paper>
             </Box>

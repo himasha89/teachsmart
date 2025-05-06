@@ -19,13 +19,13 @@ import {
 const data: StatCardProps[] = [
   {
     title: 'Lesson Planning Assistant',
-    description: 'Create lesson plans around primary sources with AI support.',
+    description: 'Create lesson plans with AI support.',
     icon: <GiTeacher size={40} style={{ color: '#FF6B6B' }} />,
     path: '/dashboard/home/lesson-planning',
   },
   {
     title: 'Document Analysis',
-    description: 'Analyze historical documents with NLP for insights.',
+    description: 'Get AI-powered summaries and key concepts from documents.',
     icon: <GiArtificialIntelligence size={40} style={{ color: '#4ECDC4' }} />,
     path: '/dashboard/home/document-analysis',
   },
