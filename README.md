@@ -23,10 +23,11 @@ Check student writing for grammar and spelling errors. The tool provides suggest
 ## Tech Stack
 
 - **Frontend**: Next.js, React, Material UI
-- **Authentication**: Firebase Authentication with multi-factor security
+- **Backend**: Google Cloud Run
 - **Database**: Firebase Firestore
-- **PDF Processing**: PDF.js for document analysis
-- **Security**: Email verification and phone-based MFA
+- **Authentication**: Firebase Auth with MFA
+- **Cloud Platform**: Google Cloud Platform
+- **Document Processing**: PDF.js
 
 ## Getting Started
 
