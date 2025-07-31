@@ -26,7 +26,7 @@ Check student writing for grammar and spelling errors. The tool provides suggest
 - **Backend**: Google Cloud Run
 - **Database**: Firebase Firestore
 - **Authentication**: Firebase Auth (Multi-factor: Email + Phone)
-- **Cloud Platform**: Google Cloud Platform
+- **Cloud Platform**: Google Cloud Platform, Vercel
 
 ## Getting Started
 
