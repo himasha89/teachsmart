@@ -25,9 +25,8 @@ Check student writing for grammar and spelling errors. The tool provides suggest
 - **Frontend**: Next.js, React, Material UI
 - **Backend**: Google Cloud Run
 - **Database**: Firebase Firestore
-- **Authentication**: Firebase Auth with MFA
+- **Authentication**: Firebase Auth (Multi-factor: Email + Phone)
 - **Cloud Platform**: Google Cloud Platform
-- **Document Processing**: PDF.js
 
 ## Getting Started
 
