@@ -23,9 +23,11 @@ Check student writing for grammar and spelling errors. The tool provides suggest
 ## Tech Stack
 
 - **Frontend**: Next.js, React, Material UI
-- **Backend**: Google Cloud Run
+- **Backend**: Python 3.9+, Flask, Google Cloud Run
+- **ML Models**: Hugging Face Inference API
 - **Database**: Firebase Firestore
 - **Authentication**: Firebase Auth (Multi-factor: Email + Phone)
+- **Container**: Docker
 - **Cloud Platform**: Google Cloud Platform, Vercel
 
 ## Getting Started
