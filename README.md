@@ -38,7 +38,7 @@ Check student writing for grammar and spelling errors. The tool provides suggest
 - npm or yarn
 - Firebase account
 
-  Note: Full backend functionality requires Python 3.9+, Flask, Docker, and Google Cloud Platform account with Cloud Run enabled. The backend service handles ML inference via Hugging Face API.
+**Note:** Full backend functionality requires Python 3.9+, Flask, Docker, and Google Cloud Platform account with Cloud Run enabled. The backend service handles ML inference via Hugging Face API.
 
 ### Installation
 
